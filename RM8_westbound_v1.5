@@ -1,118 +1,89 @@
--- [[ RM8 RED & BLACK EDITION - LUXURY HUB v4 ]] --
+-- [[ RM8 WESTBOUND v1.5 - SPECIAL RED EDITION ]] --
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
--- الألوان الجديدة (الأحمر والأسود)
 local RM8_Colors = {
-    SchemeColor = Color3.fromRGB(255, 0, 0), -- أحمر فاقع
-    Background = Color3.fromRGB(0, 0, 0), -- أسود ملكي
+    SchemeColor = Color3.fromRGB(255, 0, 0), 
+    Background = Color3.fromRGB(0, 0, 0), 
     Header = Color3.fromRGB(10, 10, 10),
-    TextColor = Color3.fromRGB(255, 255, 255), -- نص أبيض للوضوح
+    TextColor = Color3.fromRGB(255, 255, 255),
     ElementColor = Color3.fromRGB(15, 15, 15)
 }
 
-local Window = Library.CreateLib("RM8 ELITE SYSTEM", RM8_Colors)
+local Window = Library.CreateLib("RM8 WESTBOUND v1.5", RM8_Colors)
 
--- [[ الزر العائم الأحمر الفخم ]] --
+-- [ الزر العائم RM8 ] --
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local ToggleButton = Instance.new("TextButton", ScreenGui)
 local Corner = Instance.new("UICorner", ToggleButton)
 local Stroke = Instance.new("UIStroke", ToggleButton)
 
 ToggleButton.Size = UDim2.new(0, 70, 0, 40)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.45, 0) -- غيرنا مكانه شوي عشان ما يغطي على سكربت المملكة
 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 ToggleButton.Text = "RM8"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 0, 0) -- كلمة RM8 باللون الأحمر
+ToggleButton.TextColor3 = Color3.fromRGB(255, 0, 0)
 ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 18
 ToggleButton.Draggable = true
 ToggleButton.Active = true
 Corner.CornerRadius = UDim.new(0, 10)
-Stroke.Color = Color3.fromRGB(255, 0, 0) -- الإطار أحمر
+Stroke.Color = Color3.fromRGB(255, 0, 0)
 Stroke.Thickness = 2.5
 
 ToggleButton.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
--- [[ الإعدادات ]] --
-local RM8_Config = {
-    SilentAim = false, SilentFOV = 200,
-    Aimbot = false, AimbotFOV = 150,
-    TargetPart = "Head"
-}
+-- [ الإعدادات ] --
+local RM8_Config = { SilentAim = false, SilentFOV = 250, InfStamina = false }
 
--- [ قائمة القتال - Combat ] --
+-- [ قسم القتال ] --
 local CombatTab = Window:NewTab("القتال (Combat)")
-local SilentSec = CombatTab:NewSection("نظام Silent Aim")
-SilentSec:NewToggle("تفعيل Silent Aim", "الرصاص يتبع الخصم", function(state) RM8_Config.SilentAim = state end)
-SilentSec:NewSlider("نطاق Silent FOV", "مسافة الضرب", 800, 50, function(v) RM8_Config.SilentFOV = v end)
+local CombatSec = CombatTab:NewSection("أدوات الصيد")
 
-local AimSec = CombatTab:NewSection("نظام Aimbot")
-AimSec:NewToggle("تفعيل Aimbot", "سحب الكاميرا", function(state) RM8_Config.Aimbot = state end)
-AimSec:NewSlider("نطاق Aimbot FOV", "مسافة السحب", 500, 50, function(v) RM8_Config.AimbotFOV = v end)
+CombatSec:NewToggle("تفعيل Silent Aim", "الرصاص يلحق الهدف", function(state) RM8_Config.SilentAim = state end)
+CombatSec:NewSlider("نطاق الـ FOV", "مساحة الهدف", 800, 50, function(v) RM8_Config.SilentFOV = v end)
 
--- [[ قسم السكربتات الخاصة - RM8 LIBRARY ]] --
-local ScriptsTab = Window:NewTab("سكربتات RM8")
-local LibSection = ScriptsTab:NewSection("مكتبة أعمالنا")
+-- [ قسم اللاعب ] --
+local PlayerTab = Window:NewTab("اللاعب (Player)")
+local PlayerSec = PlayerTab:NewSection("قدرات خاصة")
 
-LibSection:NewButton("تشغيل سكربت RM8 القديم", "يشغل نسخة RM8 الأصلية", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/RM8511/RM8/main/old_script"))() -- استبدل بالرابط الحقيقي
+PlayerSec:NewToggle("لا نهائي Stamina", "تركض بدون تعب", function(state)
+    RM8_Config.InfStamina = state
 end)
 
-LibSection:NewButton("تحديثات القناة", "ينسخ لك رابط القناة", function()
-    setclipboard("https://github.com/RM8511")
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "RM8 Hub", Text = "تم نسخ الرابط!"})
-end)
-
--- [ قائمة الإعدادات - Settings ] --
-local SetTab = Window:NewTab("الإعدادات")
-local GlobalSec = SetTab:NewSection("تخصيص الهدف")
-GlobalSec:NewDropDown("مكان الضرب", "حدد الهدف", {"Head", "HumanoidRootPart"}, function(o) RM8_Config.TargetPart = o end)
-
--- [[ محرك RM8 التقني ]] --
+-- [[ محرك التشغيل الخلفي ]] --
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-local Camera = game.Workspace.CurrentCamera
 
-local function GetTarget(MaxDist)
-    local Closest = nil
-    local DistLimit = MaxDist
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(RM8_Config.TargetPart) then
-            local Hum = v.Character:FindFirstChild("Humanoid")
-            if Hum and Hum.Health > 0 then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(v.Character[RM8_Config.TargetPart].Position)
+-- ميزة الـ Stamina لـ Westbound
+game:GetService("RunService").RenderStepped:Connect(function()
+    if RM8_Config.InfStamina then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Stamina") then
+            LocalPlayer.Character.Stamina.Value = 100
+        end
+    end
+end)
+
+-- محرك الـ Silent Aim (نظام Mouse Hit)
+local OldIndex
+OldIndex = hookmetamethod(game, "__index", function(self, index)
+    if self == Mouse and (index == "Hit" or index == "Target") and RM8_Config.SilentAim then
+        local Target = nil
+        local Dist = RM8_Config.SilentFOV
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+                local Pos, OnScreen = game.Workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
                 if OnScreen then
                     local Mag = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                    if Mag < DistLimit then
-                        Closest = v
-                        DistLimit = Mag
+                    if Mag < Dist then
+                        Target = v
+                        Dist = Mag
                     end
                 end
             end
         end
-    end
-    return Closest
-end
-
--- نظام Silent Aim
-local OldIndex
-OldIndex = hookmetamethod(game, "__index", function(self, index)
-    if self == Mouse and (index == "Hit" or index == "Target") and RM8_Config.SilentAim then
-        local Target = GetTarget(RM8_Config.SilentFOV)
-        if Target and Target.Character and Target.Character:FindFirstChild(RM8_Config.TargetPart) then
-            return (index == "Hit" and Target.Character[RM8_Config.TargetPart].CFrame or Target.Character[RM8_Config.TargetPart])
+        if Target then
+            return (index == "Hit" and Target.Character.Head.CFrame or Target.Character.Head)
         end
     end
     return OldIndex(self, index)
-end)
-
--- نظام Aimbot
-game:GetService("RunService").RenderStepped:Connect(function()
-    if RM8_Config.Aimbot and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local T = GetTarget(RM8_Config.AimbotFOV)
-        if T then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, T.Character[RM8_Config.TargetPart].Position), 0.1)
-        end
-    end
 end)
