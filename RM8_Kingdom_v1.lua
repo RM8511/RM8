@@ -1,40 +1,72 @@
--- [[ RM8 KINGDOM - HAND-CRAFTED VERSION ]] --
--- كلمة السر: مدينة
+-- [[ RM8 KINGDOM - ORIGINAL BASE ]] --
 
--- استدعاء المكتبة
-local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local CoreGui = game:GetService("CoreGui")
+local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
--- إنشاء النافذة باسمك (RM8)
-local Window = Kavo.CreateLib("عالم المملكة - RM8", "BloodTheme")
-
--- القسم الأساسي
-local Tab = Window:NewTab("RM8 Main")
-local Section = Tab:NewSection("التحكم العام")
-
-Section:NewButton("تفعيل المميزات", "تشغيل سكربت عالم المملكة باسم RM8", function()
-    -- هنا سحبت لك الكود الأصلي لكن مع إجبار تغيير الهوية
-    local raw = game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh")
-    local fixed = raw:gsub("N7R", "RM8"):gsub("n7r", "RM8")
-    loadstring(fixed)()
+-- 1. دالة تغيير الاسم (مراقبة مستمرة لكل النصوص)
+spawn(function()
+    while task.wait(0.5) do -- خليتها أسرع شوي عشان الاسم ما يلحق يظهر
+        for _, v in pairs(CoreGui:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextButton") then
+                if v.Text:find("N7R") or v.Text:find("عالم المملكة") or v.Text:find("n7r") then
+                    v.Text = v.Text:gsub("N7R", "RM8"):gsub("عالم المملكة", "RM8"):gsub("n7r", "RM8")
+                end
+            end
+        end
+        for _, v in pairs(PlayerGui:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextButton") then
+                if v.Text:find("N7R") or v.Text:find("عالم المملكة") or v.Text:find("n7r") then
+                    v.Text = v.Text:gsub("N7R", "RM8"):gsub("عالم المملكة", "RM8"):gsub("n7r", "RM8")
+                end
+            end
+        end
+    end
 end)
 
--- إنشاء الزر العائم (مقاس 40)
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local ToggleButton = Instance.new("TextButton", ScreenGui)
-local Corner = Instance.new("UICorner", ToggleButton)
+-- 2. دالة الزر العائم (المقاس الصغير 40)
+local function createToggle()
+    local sg = Instance.new("ScreenGui", CoreGui)
+    sg.Name = "RM8_Control"
+    sg.DisplayOrder = 999999
 
-ToggleButton.Name = "RM8_Toggle"
-ToggleButton.Size = UDim2.new(0, 40, 0, 40)
-ToggleButton.Position = UDim2.new(0, 15, 0.5, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-ToggleButton.Text = "RM8"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 0, 0)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 12
-ToggleButton.Draggable = true
-ToggleButton.Active = true
-Corner.CornerRadius = UDim.new(0, 50)
+    local btn = Instance.new("TextButton", sg)
+    btn.Size = UDim2.new(0, 40, 0, 40) -- المقاس 40
+    btn.Position = UDim2.new(0, 10, 0.5, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    btn.Text = "RM8"
+    btn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.Draggable = true
 
-ToggleButton.MouseButton1Click:Connect(function()
-    Kavo:ToggleUI()
-end)
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 50)
+    
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Color = Color3.fromRGB(255, 0, 0)
+    stroke.Thickness = 2
+
+    btn.MouseButton1Click:Connect(function()
+        local targetFound = false
+        for _, v in pairs(CoreGui:GetChildren()) do
+            if v:IsA("ScreenGui") and v.Name ~= "RM8_Control" and v.Name ~= "RobloxGui" then
+                if v:FindFirstChild("Main") or v:FindFirstChild("Container") or v.Name:find("Kavo") then
+                    v.Enabled = not v.Enabled
+                    targetFound = true
+                end
+            end
+        end
+        if not targetFound then
+            for _, v in pairs(PlayerGui:GetChildren()) do
+                if v:IsA("ScreenGui") and (v:FindFirstChild("Main") or v:FindFirstChild("Container")) then
+                    v.Enabled = not v.Enabled
+                end
+            end
+        end
+    end)
+end
+
+createToggle()
+
+-- 3. تشغيل السكربت الأصلي
+loadstring(game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh"))()
