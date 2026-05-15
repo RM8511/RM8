@@ -1,36 +1,29 @@
--- [[ RM8 KINGDOM - ULTIMATE FORCE ]] --
+-- [[ RM8 KINGDOM - HAND-CRAFTED VERSION ]] --
 -- كلمة السر: مدينة
 
-local function StartRM8()
-    -- 1. سحب الكود وتطهيره
-    local Success, RawData = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh")
-    end)
+-- استدعاء المكتبة
+local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
-    if Success then
-        -- استبدال شامل وعميق لكل النصوص
-        local FinalCode = RawData:gsub("N7R", "RM8"):gsub("n7r", "RM8")
-        
-        -- تشغيل الكود المعدل
-        local Exec, Error = loadstring(FinalCode)
-        if Exec then
-            Exec()
-        else
-            warn("RM8 Error in script execution: " .. Error)
-        end
-    end
-end
+-- إنشاء النافذة باسمك (RM8)
+local Window = Kavo.CreateLib("عالم المملكة - RM8", "BloodTheme")
 
--- 2. تشغيل النظام
-StartRM8()
+-- القسم الأساسي
+local Tab = Window:NewTab("RM8 Main")
+local Section = Tab:NewSection("التحكم العام")
 
--- 3. الزر العائم (40) للفتح والإغلاق
+Section:NewButton("تفعيل المميزات", "تشغيل سكربت عالم المملكة باسم RM8", function()
+    -- هنا سحبت لك الكود الأصلي لكن مع إجبار تغيير الهوية
+    local raw = game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh")
+    local fixed = raw:gsub("N7R", "RM8"):gsub("n7r", "RM8")
+    loadstring(fixed)()
+end)
+
+-- إنشاء الزر العائم (مقاس 40)
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local ToggleButton = Instance.new("TextButton", ScreenGui)
 local Corner = Instance.new("UICorner", ToggleButton)
-local Stroke = Instance.new("UIStroke", ToggleButton)
 
-ToggleButton.Name = "RM8_Mini_Toggle"
+ToggleButton.Name = "RM8_Toggle"
 ToggleButton.Size = UDim2.new(0, 40, 0, 40)
 ToggleButton.Position = UDim2.new(0, 15, 0.5, 0)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -41,15 +34,7 @@ ToggleButton.TextSize = 12
 ToggleButton.Draggable = true
 ToggleButton.Active = true
 Corner.CornerRadius = UDim.new(0, 50)
-Stroke.Color = Color3.fromRGB(255, 0, 0)
-Stroke.Thickness = 2
 
 ToggleButton.MouseButton1Click:Connect(function()
-    local cg = game:GetService("CoreGui")
-    for _, v in pairs(cg:GetChildren()) do
-        -- هذا الكود يبحث عن أي واجهة (UI) مفتوحة ويقفلها/يفتحها
-        if v:IsA("ScreenGui") and (v:FindFirstChild("Main") or v:FindFirstChild("Container") or v.Name:find("Kavo")) then
-            v.Enabled = not v.Enabled
-        end
-    end
+    Kavo:ToggleUI()
 end)
