@@ -1,54 +1,66 @@
--- RM8 ELITE PATCH (Final Solution)
-local CoreGui = game:GetService("CoreGui")
-local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+-- [[ RM8 KINGDOM v1 - SECURE KEY SYSTEM ]] --
 
--- دالة التحكم الذكي (تصغير بدل إخفاء)
-local function createToggle()
-    local sg = Instance.new("ScreenGui", CoreGui)
-    sg.Name = "RM8_Control"
-    sg.DisplayOrder = 999999
+local CorrectKey = "RM8_v1" -- هذا هو الرمز السري الجديد
 
-    local btn = Instance.new("TextButton", sg)
-    btn.Size = UDim2.new(0, 80, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0.5, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255) -- لون أزرق مميز
-    btn.Text = "RM8: SHOW"
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Draggable = true
+-- [[ واجهة التحقق من المفتاح ]] --
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+local Title = Instance.new("TextLabel", MainFrame)
+local KeyInput = Instance.new("TextBox", MainFrame)
+local SubmitBtn = Instance.new("TextButton", MainFrame)
+local Corner = Instance.new("UICorner", MainFrame)
+local Stroke = Instance.new("UIStroke", MainFrame)
 
-    local hidden = false
+MainFrame.Size = UDim2.new(0, 320, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Corner.CornerRadius = UDim.new(0, 12)
+Stroke.Color = Color3.fromRGB(255, 0, 0)
+Stroke.Thickness = 2
 
-    btn.MouseButton1Click:Connect(function()
-        hidden = not hidden
-        btn.Text = hidden and "RM8: HIDE" or "RM8: SHOW"
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "RM8 SYSTEM | أدخل الرمز"
+Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+
+KeyInput.Size = UDim2.new(0, 260, 0, 40)
+KeyInput.Position = UDim2.new(0.5, -130, 0.4, 0)
+KeyInput.PlaceholderText = "الرمز هنا..."
+KeyInput.Text = ""
+KeyInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
+
+SubmitBtn.Size = UDim2.new(0, 120, 0, 35)
+SubmitBtn.Position = UDim2.new(0.5, -60, 0.75, 0)
+SubmitBtn.Text = "دخول"
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SubmitBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
+
+-- [[ وظيفة التحقق وتشغيل السكربت ]] --
+SubmitBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CorrectKey then
+        Title.Text = "تم التحقق.. جاري التشغيل"
+        Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+        wait(1)
+        ScreenGui:Destroy()
         
-        -- نبحث عن الواجهات وننقل مكانها بدل ما نطفيها عشان ما يكرش
-        for _, v in pairs(CoreGui:GetChildren()) do
-            if v:IsA("ScreenGui") and v.Name ~= "RM8_Control" and v.Name ~= "RobloxGui" then
-                for _, child in pairs(v:GetChildren()) do
-                    if child:IsA("Frame") or child:IsA("ImageLabel") then
-                        child.Visible = not hidden -- نجرب الإخفاء الداخلي للقطع بدل الـ ScreenGui كامل
-                    end
-                end
-            end
-        end
-    end)
-end
+        -- تشغيل السكربت الأساسي
+        local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+        local Window = Library.CreateLib("RM8 KINGDOM - عالم المملكة", {
+            SchemeColor = Color3.fromRGB(255, 0, 0),
+            Background = Color3.fromRGB(0, 0, 0),
+            Header = Color3.fromRGB(10, 10, 10),
+            TextColor = Color3.fromRGB(255, 255, 255),
+            ElementColor = Color3.fromRGB(15, 15, 15)
+        })
 
--- دالة تغيير الاسم المستمرة
-spawn(function()
-    while task.wait(1) do
-        for _, v in pairs(CoreGui:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") then
-                if v.Text:find("N7R") or v.Text:find("عالم المملكة") then
-                    v.Text = v.Text:gsub("N7R", "RM8"):gsub("عالم المملكة", "RM8")
-                end
-            end
-        end
-    end
-end)
+        -- تابات السكربت
+        local MainTab = Window:NewTab("الرئيسية")
+        local LibTab = Window:NewTab("مكتبة السكربتات")
 
-createToggle()
-
--- تشغيل السكريبت الأصلي
-loadstring(game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh"))()
+        local MainSec
