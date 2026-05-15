@@ -1,23 +1,20 @@
--- [[ RM8 KINGDOM SYSTEM - FULL NAME REPLACEMENT ]] --
+-- [[ RM8 KINGDOM - THE MAIN BASE ]] --
+-- الملكية: RM8 | هذا هو السكربت الأساسي المعتمد
 
--- 1. سحب الكود الأصلي وتبديل كل شيء فيه حرفياً
+-- 1. سحب وتعديل السكربت الأساسي (عالم المملكة)
 local Success, RawData = pcall(function()
     return game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh")
 end)
 
 if Success then
-    -- استبدال شامل لكل كلمة N7R بـ RM8 في كامل ملف السكربت
-    local FinalCode = RawData:gsub("N7R", "RM8")
-    
-    -- إضافة سطر إضافي لضمان تغيير أي نص برمجي متبقي
-    FinalCode = FinalCode:gsub("n7r", "RM8") 
-    
+    -- استبدال شامل لضمان ظهور اسمك في كل مكان بالسكربت
+    local FinalCode = RawData:gsub("N7R", "RM8"):gsub("n7r", "RM8")
     loadstring(FinalCode)()
 else
-    warn("Failed to load original script.")
+    warn("RM8 Error: Could not load base script.")
 end
 
--- 2. إعداد الزر العائم الصغير (مقاس 40)
+-- 2. الزر العائم (المقاس المطلوب: 40)
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local ToggleButton = Instance.new("TextButton", ScreenGui)
 local Corner = Instance.new("UICorner", ToggleButton)
@@ -38,10 +35,11 @@ Corner.CornerRadius = UDim.new(0, 50)
 Stroke.Color = Color3.fromRGB(255, 0, 0)
 Stroke.Thickness = 1.5
 
--- وظيفة الفتح والإغلاق مع حفظ التفعيلات
+-- 3. وظيفة الفتح والإغلاق (Toggle) مع حفظ الإعدادات
 ToggleButton.MouseButton1Click:Connect(function()
     local coreGui = game:GetService("CoreGui")
     for _, v in pairs(coreGui:GetChildren()) do
+        -- إظهار وإخفاء واجهة السكربت دون إطفاء المميزات
         if v:IsA("ScreenGui") and (v:FindFirstChild("Main") or v:FindFirstChild("Container")) then
             v.Enabled = not v.Enabled
         end
