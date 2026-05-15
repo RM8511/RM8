@@ -57,7 +57,7 @@ SubmitBtn.MouseButton1Click:Connect(function()
         local Sec = Tab:NewSection("تم التشغيل بنجاح")
         Sec:NewButton("RM8 GitHub", "Copy", function() setclipboard("https://github.com/RM8511") end)
     else
-        Title.Text = "رمز غلط يا بطل!"
+        Title.Text = "رمز غلط تلقاه عند صاحب السكر بت حساب تيك mmjdul!"
         wait(1)
         Title.Text = "RM8 SYSTEM | ENTER KEY"
     end
