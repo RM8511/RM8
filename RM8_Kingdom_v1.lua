@@ -1,24 +1,26 @@
--- [[ RM8 KINGDOM - FORCE UPDATE ]] --
--- كلمة السر: مدينة (لتفعيل التعديل الجذري)
+-- [[ RM8 KINGDOM - THE FINAL SOLUTION ]] --
+-- كلمة السر: مدينة
 
+-- 1. سحب وتطهير الكود من أي أثر لاسم N7R
 local Success, RawData = pcall(function()
     return game:HttpGet("https://raw.githubusercontent.com/kkmmai82/kkmmai82/refs/heads/main/Jdh")
 end)
 
 if Success then
-    -- استبدال شامل بكل الأشكال الممكنة
-    local FinalCode = RawData
-    FinalCode = FinalCode:gsub("N7R", "RM8")
-    FinalCode = FinalCode:gsub("n7r", "RM8")
-    FinalCode = FinalCode:gsub("N 7 R", "RM8")
+    -- استبدال شامل لكل الاحتمالات (كبير، صغير، بمسافات)
+    local CleanCode = RawData:gsub("N7R", "RM8")
+                             :gsub("n7r", "RM8")
+                             :gsub("N 7 R", "RM8")
+                             :gsub('Title = "N7R"', 'Title = "RM8"')
+                             :gsub('Name = "N7R"', 'Name = "RM8"')
     
-    -- تشغيل السكربت بعد التطهير الكامل من الاسم القديم
-    loadstring(FinalCode)()
+    -- تشغيل النسخة النظيفة باسمك
+    loadstring(CleanCode)()
 else
-    warn("RM8 Error: Could not load script.")
+    warn("RM8 Error: Connection Failed.")
 end
 
--- إعداد الزر الصغير (40)
+-- 2. الزر العائم الصغير (مقاس 40)
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local ToggleButton = Instance.new("TextButton", ScreenGui)
 local Corner = Instance.new("UICorner", ToggleButton)
@@ -38,9 +40,10 @@ Corner.CornerRadius = UDim.new(0, 50)
 Stroke.Color = Color3.fromRGB(255, 0, 0)
 Stroke.Thickness = 1.5
 
+-- وظيفة الفتح والإغلاق دون تصفير الإعدادات
 ToggleButton.MouseButton1Click:Connect(function()
-    local coreGui = game:GetService("CoreGui")
-    for _, v in pairs(coreGui:GetChildren()) do
+    local cg = game:GetService("CoreGui")
+    for _, v in pairs(cg:GetChildren()) do
         if v:IsA("ScreenGui") and (v:FindFirstChild("Main") or v:FindFirstChild("Container")) then
             v.Enabled = not v.Enabled
         end
