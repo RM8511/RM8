@@ -1,32 +1,47 @@
--- RM8 ELITE HUB: Westbound (Floating Toggle Button)
+-- RM8 GOLD ELITE: Westbound (Black & Gold Edition)
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("RM8 SYSTEM - Westbound", "DarkTheme")
 
--- [[ إنشاء الزر العائم الصغير ]] --
+-- تخصيص الألوان (الأسود والذهبي)
+local colors = {
+    SchemeColor = Color3.fromRGB(212, 175, 55), -- ذهبي
+    Background = Color3.fromRGB(0, 0, 0), -- أسود مطفي
+    Header = Color3.fromRGB(15, 15, 15), -- أسود خفيف للهيدر
+    TextColor = Color3.fromRGB(255, 255, 255), -- نص أبيض
+    ElementColor = Color3.fromRGB(20, 20, 20) -- خلفية الأزرار
+}
+
+local Window = Library.CreateLib("RM8 SYSTEM - Westbound", colors)
+
+-- [[ إنشاء الزر العائم الذهبي ]] --
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleButton = Instance.new("TextButton")
+local Corner = Instance.new("UICorner")
+local Stroke = Instance.new("UIStroke")
 
 ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.Name = "RM8_ToggleSystem"
-
 ToggleButton.Parent = ScreenGui
-ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- لون غامق فخم
-ToggleButton.BorderSizePixel = 2
-ToggleButton.BorderColor3 = Color3.fromRGB(255, 170, 0) -- تحديد برتقالي (لون RM8)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.4, 0) -- مكانه في يسار الشاشة
-ToggleButton.Size = UDim2.new(0, 50, 0, 30)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+ToggleButton.Size = UDim2.new(0, 60, 0, 35)
 ToggleButton.Text = "RM8"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 14
-ToggleButton.Draggable = true -- تقدر تحركه بيدك في أي مكان
+ToggleButton.TextColor3 = Color3.fromRGB(212, 175, 55) -- نص ذهبي
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Draggable = true
 ToggleButton.Active = true
 
--- وظيفة الزر (يخفي ويظهر القائمة)
+Corner.CornerRadius = UDim.new(0, 8)
+Corner.Parent = ToggleButton
+
+Stroke.Parent = ToggleButton
+Stroke.Color = Color3.fromRGB(212, 175, 55) -- إطار ذهبي
+Stroke.Thickness = 2
+
 ToggleButton.MouseButton1Click:Connect(function()
     Library:ToggleUI()
 end)
 
--- [[ إعدادات نظام RM8 ]] --
+-- [[ إعدادات RM8 ]] --
 local RM8_Config = {
     SilentAim = false,
     AimAssist = false,
@@ -35,11 +50,10 @@ local RM8_Config = {
     FOV = 150
 }
 
--- [ قوائم السكريبت ] --
 local MainTab = Window:NewTab("القتال (Combat)")
 local CombatSection = MainTab:NewSection("أنظمة الإيم - RM8")
 
-CombatSection:NewToggle("تفعيل Silent Aim", "الرصاص يروح للخصم تلقائياً", function(state)
+CombatSection:NewToggle("تفعيل Silent Aim", "الرصاص ينجذب للخصم تلقائياً", function(state)
     RM8_Config.SilentAim = state
 end)
 
