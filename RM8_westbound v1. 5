@@ -1,73 +1,74 @@
--- RM8 GOLD ELITE: Westbound (Independent FOV Controls)
+-- [[ RM8 RED & BLACK EDITION - LUXURY HUB v4 ]] --
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
-local colors = {
-    SchemeColor = Color3.fromRGB(212, 175, 55), -- ذهبي
-    Background = Color3.fromRGB(0, 0, 0), -- أسود
-    Header = Color3.fromRGB(15, 15, 15),
-    TextColor = Color3.fromRGB(255, 255, 255),
-    ElementColor = Color3.fromRGB(20, 20, 20)
+-- الألوان الجديدة (الأحمر والأسود)
+local RM8_Colors = {
+    SchemeColor = Color3.fromRGB(255, 0, 0), -- أحمر فاقع
+    Background = Color3.fromRGB(0, 0, 0), -- أسود ملكي
+    Header = Color3.fromRGB(10, 10, 10),
+    TextColor = Color3.fromRGB(255, 255, 255), -- نص أبيض للوضوح
+    ElementColor = Color3.fromRGB(15, 15, 15)
 }
 
-local Window = Library.CreateLib("RM8 SYSTEM - Westbound", colors)
+local Window = Library.CreateLib("RM8 ELITE SYSTEM", RM8_Colors)
 
--- [ الزر العائم الذهبي ] --
+-- [[ الزر العائم الأحمر الفخم ]] --
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local ToggleButton = Instance.new("TextButton", ScreenGui)
 local Corner = Instance.new("UICorner", ToggleButton)
 local Stroke = Instance.new("UIStroke", ToggleButton)
 
-ToggleButton.Size = UDim2.new(0, 60, 0, 35)
+ToggleButton.Size = UDim2.new(0, 70, 0, 40)
 ToggleButton.Position = UDim2.new(0.05, 0, 0.4, 0)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 ToggleButton.Text = "RM8"
-ToggleButton.TextColor3 = Color3.fromRGB(212, 175, 55)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 0, 0) -- كلمة RM8 باللون الأحمر
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 18
 ToggleButton.Draggable = true
 ToggleButton.Active = true
-Corner.CornerRadius = UDim.new(0, 8)
-Stroke.Color = Color3.fromRGB(212, 175, 55)
-Stroke.Thickness = 2
+Corner.CornerRadius = UDim.new(0, 10)
+Stroke.Color = Color3.fromRGB(255, 0, 0) -- الإطار أحمر
+Stroke.Thickness = 2.5
 
 ToggleButton.MouseButton1Click:Connect(function() Library:ToggleUI() end)
 
--- [ الإعدادات الافتراضية ] --
+-- [[ الإعدادات ]] --
 local RM8_Config = {
-    SilentAim = false,
-    SilentFOV = 200,
-    Aimbot = false,
-    AimbotFOV = 150,
+    SilentAim = false, SilentFOV = 200,
+    Aimbot = false, AimbotFOV = 150,
     TargetPart = "Head"
 }
 
--- [ قائمة القتال ] --
-local MainTab = Window:NewTab("القتال (Combat)")
+-- [ قائمة القتال - Combat ] --
+local CombatTab = Window:NewTab("القتال (Combat)")
+local SilentSec = CombatTab:NewSection("نظام Silent Aim")
+SilentSec:NewToggle("تفعيل Silent Aim", "الرصاص يتبع الخصم", function(state) RM8_Config.SilentAim = state end)
+SilentSec:NewSlider("نطاق Silent FOV", "مسافة الضرب", 800, 50, function(v) RM8_Config.SilentFOV = v end)
 
--- قسم Silent Aim
-local SilentSection = MainTab:NewSection("نظام Silent Aim")
-SilentSection:NewToggle("تفعيل Silent Aim", "توجيه الرصاص تلقائياً", function(state) 
-    RM8_Config.SilentAim = state 
-end)
-SilentSection:NewSlider("نطاق Silent FOV", "مسافة انجذاب الرصاص", 800, 50, function(v) 
-    RM8_Config.SilentFOV = v 
-end)
+local AimSec = CombatTab:NewSection("نظام Aimbot")
+AimSec:NewToggle("تفعيل Aimbot", "سحب الكاميرا", function(state) RM8_Config.Aimbot = state end)
+AimSec:NewSlider("نطاق Aimbot FOV", "مسافة السحب", 500, 50, function(v) RM8_Config.AimbotFOV = v end)
 
--- قسم Aimbot
-local AimSection = MainTab:NewSection("نظام Aimbot")
-AimSection:NewToggle("تفعيل Aimbot", "سحب الكاميرا للخصم", function(state) 
-    RM8_Config.Aimbot = state 
-end)
-AimSection:NewSlider("نطاق Aimbot FOV", "مسافة سحب الكاميرا", 500, 50, function(v) 
-    RM8_Config.AimbotFOV = v 
+-- [[ قسم السكربتات الخاصة - RM8 LIBRARY ]] --
+local ScriptsTab = Window:NewTab("سكربتات RM8")
+local LibSection = ScriptsTab:NewSection("مكتبة أعمالنا")
+
+LibSection:NewButton("تشغيل سكربت RM8 القديم", "يشغل نسخة RM8 الأصلية", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/RM8511/RM8/main/old_script"))() -- استبدل بالرابط الحقيقي
 end)
 
--- قسم الإعدادات العامة
-local SettingsTab = Window:NewTab("الإعدادات")
-local GlobalSection = SettingsTab:NewSection("تخصيص الهدف")
-GlobalSection:NewDropDown("مكان الضرب", "حدد الهدف", {"Head", "HumanoidRootPart"}, function(option)
-    RM8_Config.TargetPart = option
+LibSection:NewButton("تحديثات القناة", "ينسخ لك رابط القناة", function()
+    setclipboard("https://github.com/RM8511")
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "RM8 Hub", Text = "تم نسخ الرابط!"})
 end)
 
--- [[ محرك RM8 الذكي ]] --
+-- [ قائمة الإعدادات - Settings ] --
+local SetTab = Window:NewTab("الإعدادات")
+local GlobalSec = SetTab:NewSection("تخصيص الهدف")
+GlobalSec:NewDropDown("مكان الضرب", "حدد الهدف", {"Head", "HumanoidRootPart"}, function(o) RM8_Config.TargetPart = o end)
+
+-- [[ محرك RM8 التقني ]] --
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
@@ -94,7 +95,7 @@ local function GetTarget(MaxDist)
     return Closest
 end
 
--- تفعيل الـ Silent Aim (برمجة الماوس)
+-- نظام Silent Aim
 local OldIndex
 OldIndex = hookmetamethod(game, "__index", function(self, index)
     if self == Mouse and (index == "Hit" or index == "Target") and RM8_Config.SilentAim then
@@ -106,7 +107,7 @@ OldIndex = hookmetamethod(game, "__index", function(self, index)
     return OldIndex(self, index)
 end)
 
--- تفعيل الـ Aimbot (حركة الكاميرا)
+-- نظام Aimbot
 game:GetService("RunService").RenderStepped:Connect(function()
     if RM8_Config.Aimbot and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
         local T = GetTarget(RM8_Config.AimbotFOV)
