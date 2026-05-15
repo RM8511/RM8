@@ -7,7 +7,7 @@ local function forceRename()
         for _, v in pairs(root:GetDescendants()) do
             if v:IsA("TextLabel") or v:IsA("TextButton") then
                 -- إذا وجدنا الاسم القديم، نقوم بمسحه وتغييره
-                if v.Text:find("N7R") or v.Text:find("عالم المملكة") then
+                if v.Text:find("RM8") or v.Text:find("عالم المملكة") then
                     v.Text = v.Text:gsub("N7R", "RM8"):gsub("عالم المملكة", "RM8 HUB")
                     
                     -- تأكيد التغيير بقوة
