@@ -1,72 +1,102 @@
--- RM8 FOCUS SYSTEM: Westbound Silent Aim (Target Nearest to Cursor)
+-- RM8 ELITE HUB: Westbound Edition
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("RM8 SYSTEM - Westbound", "DarkTheme")
+
+-- الإعدادات الافتراضية
+local RM8_Config = {
+    SilentAim = false,
+    AimAssist = false,
+    Aimbot = false,
+    TargetPart = "HumanoidRootPart",
+    FOV = 150
+}
+
+-- القوائم (Tabs)
+local MainTab = Window:NewTab("القتال (Combat)")
+local CombatSection = MainTab:NewSection("أنظمة الإيم - RM8")
+
+-- 1. زر Silent Aim
+CombatSection:NewToggle("تفعيل Silent Aim", "الرصاص يروح للخصم بدون ما تأشر عليه", function(state)
+    RM8_Config.SilentAim = state
+end)
+
+-- 2. زر Aim Assist
+CombatSection:NewToggle("تفعيل Aim Assist", "يساعدك في التصويب بنعومة", function(state)
+    RM8_Config.AimAssist = state
+end)
+
+-- 3. زر Aimbot
+CombatSection:NewToggle("تفعيل Aimbot", "يسحب الكاميرا للخصم مباشرة", function(state)
+    RM8_Config.Aimbot = state
+end)
+
+-- قائمة الإعدادات
+local SettingsTab = Window:NewTab("الإعدادات")
+local SettingsSection = SettingsTab:NewSection("تخصيص RM8")
+
+SettingsSection:NewDropDown("مكان الضرب", "اختار وين تبي الرصاص يجي", {"Head", "HumanoidRootPart"}, function(currentOption)
+    RM8_Config.TargetPart = currentOption
+end)
+
+SettingsSection:NewSlider("نطاق البحث (FOV)", "حدد المسافة", 500, 50, function(s)
+    RM8_Config.FOV = s
+end)
+
+-- [[ المحرك البرمجي لـ RM8 ]] --
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = game.Workspace.CurrentCamera
 
--- إعدادات RM8 المركزة
-local RM8_Config = {
-    Enabled = true,
-    TargetPart = "HumanoidRootPart", -- الصدر (أكثر أماناً)
-    MaxDistance = 350, -- المسافة القصوى
-    FieldOfView = 80 -- زاوية الرؤية (فقط اللي قدامك بمدى بصري طبيعي)
-}
-
--- دالة لاختيار الشخص "المقصود" (الأقرب للماوس)
-local function GetBestTarget()
-    local BestTarget = nil
-    local SmallestMagnitude = RM8_Config.FieldOfView * 10 -- البحث في محيط الماوس
-
+local function GetClosestTarget()
+    local Target = nil
+    local ClosestMag = RM8_Config.FOV
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(RM8_Config.TargetPart) then
-            local Humanoid = v.Character:FindFirstChild("Humanoid")
-            if Humanoid and Humanoid.Health > 0 then
-                
-                -- تحويل موقع الخصم لنقطة على الشاشة
+            local Hum = v.Character:FindFirstChild("Humanoid")
+            if Hum and Hum.Health > 0 then
                 local ScreenPoint, OnScreen = Camera:WorldToViewportPoint(v.Character[RM8_Config.TargetPart].Position)
-                
                 if OnScreen then
-                    -- حساب المسافة بين الخصم وبينك
-                    local Distance = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character[RM8_Config.TargetPart].Position).Magnitude
-                    
-                    -- حساب المسافة بين مؤشر الماوس وموقع الخصم على الشاشة
-                    local Magnitude = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                    
-                    if Distance < RM8_Config.MaxDistance and Magnitude < SmallestMagnitude then
-                        -- فحص الجدران (التأكد أنه قدامك مو وراء عائق)
-                        local RayParams = RaycastParams.new()
-                        RayParams.FilterDescendantsInstances = {LocalPlayer.Character, v.Character}
-                        RayParams.FilterType = Enum.RaycastFilterType.Exclude
-                        
-                        local RayResult = game.Workspace:Raycast(Camera.CFrame.Position, (v.Character[RM8_Config.TargetPart].Position - Camera.CFrame.Position).Unit * Distance, RayParams)
-                        
-                        if not RayResult then -- إذا الطريق فاضي
-                            BestTarget = v
-                            SmallestMagnitude = Magnitude
-                        end
+                    local Mag = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    if Mag < ClosestMag then
+                        Target = v
+                        ClosestMag = Mag
                     end
                 end
             end
         end
     end
-    return BestTarget
+    return Target
 end
 
--- تفعيل الـ Silent Aim المركز
-local OldNamecall
-OldNamecall = hookmetamethod(game, "__namecall", function(Self, ...)
-    local Args = {...}
-    local Method = getnamecallmethod()
-
-    if RM8_Config.Enabled and Method == "FindPartOnRayWithIgnoreList" then
-        local Target = GetBestTarget()
-        if Target and Target.Character then
-            -- توجيه الرصاصة للشخص اللي "أنت" مصوب قريب منه
-            Args[1] = Ray.new(Camera.CFrame.Position, (Target.Character[RM8_Config.TargetPart].Position - Camera.CFrame.Position).Unit * 1000)
-            return OldNamecall(Self, unpack(Args))
+-- تشغيل الأنظمة
+game:GetService("RunService").RenderStepped:Connect(function()
+    local Target = GetClosestTarget()
+    if Target and Target.Character then
+        -- نظام Aimbot (سحب الكاميرا)
+        if RM8_Config.Aimbot and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, Target.Character[RM8_Config.TargetPart].Position), 0.1)
+        end
+        -- نظام Aim Assist (تحريك الماوس)
+        if RM8_Config.AimAssist and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+             -- (هنا نبرمج حركة أخف للكاميرا)
         end
     end
-    return OldNamecall(Self, ...)
 end)
 
-print("RM8 Focus System: Active. Targets the closest person to your cursor.")
+-- نظام Silent Aim
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local Args = {...}
+    local Method = getnamecallmethod()
+    if RM8_Config.SilentAim and Method == "FindPartOnRayWithIgnoreList" then
+        local T = GetClosestTarget()
+        if T then
+            Args[1] = Ray.new(Camera.CFrame.Position, (T.Character[RM8_Config.TargetPart].Position - Camera.CFrame.Position).Unit * 1000)
+            return OldNamecall(self, unpack(Args))
+        end
+    end
+    return OldNamecall(self, ...)
+end)
+
+print("RM8 ELITE HUB LOADED!")
