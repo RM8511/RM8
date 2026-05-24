@@ -29,4 +29,4 @@ local function _0xExecute()
 end
 
 -- الإطلاق الآمن
-_0xExecute()
+_0xExecute() 
