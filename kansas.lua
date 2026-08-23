@@ -57,7 +57,6 @@ Credit.TextColor3 = Color3.fromRGB(160, 160, 160)
 Credit.TextSize = 10
 Credit.Font = Enum.Font.GothamMedium
 
--- وظيفة انتقال سلس ودقيق جداً بدون أي أخطاء أو تعليق
 local function preciseTeleport(targetCFrame)
     local success, err = pcall(function()
         local char = player.Character
@@ -76,7 +75,6 @@ local function preciseTeleport(targetCFrame)
     return success
 end
 
--- دالة للبحث والضغط الآمن على الأزرار المرتبطة بالطلبات
 local function triggerPromptByKeyword(keyword)
     local success = false
     pcall(function()
@@ -102,7 +100,6 @@ local function triggerPromptByKeyword(keyword)
             end
         end
 
-        -- إذا وجدنا الهدف بدقة، ننتقل إليه ونقوم بتفعيله
         if targetPrompt and targetPrompt.Parent then
             preciseTeleport(targetPrompt.Parent.CFrame + Vector3.new(0, 2, 0))
             task.wait(0.1)
@@ -123,13 +120,11 @@ ToggleButton.MouseButton1Click:Connect(function()
         
         task.spawn(function()
             while isRunning and _G.KansasRunning do
-                -- 1. أخذ الطلب من ماك بدقة
                 triggerPromptByKeyword("order")
                 task.wait(0.8)
                 
                 if not isRunning or not _G.KansasRunning then break end
                 
-                -- 2. الانتقال وتسليم الطلب للبيت المطلوب بدقة
                 triggerPromptByKeyword("deliver")
                 task.wait(1.5)
             end
