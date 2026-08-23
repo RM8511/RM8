@@ -1,5 +1,5 @@
 --[========================================================--
-    Kansas Ultra-Precise Auto-Farm | By RM8511
+    Kansas Auto-Farm McDonald's | Made by RM8511
 --========================================================-]
 
 local Players = game:GetService("Players")
@@ -58,7 +58,7 @@ Credit.TextSize = 10
 Credit.Font = Enum.Font.GothamMedium
 
 local function preciseTeleport(targetCFrame)
-    local success, err = pcall(function()
+    pcall(function()
         local char = player.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local hrp = char.HumanoidRootPart
@@ -72,11 +72,9 @@ local function preciseTeleport(targetCFrame)
             task.wait(timeTaken)
         end
     end)
-    return success
 end
 
 local function triggerPromptByKeyword(keyword)
-    local success = false
     pcall(function()
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -104,10 +102,8 @@ local function triggerPromptByKeyword(keyword)
             preciseTeleport(targetPrompt.Parent.CFrame + Vector3.new(0, 2, 0))
             task.wait(0.1)
             fireproximityprompt(targetPrompt)
-            success = true
         end
     end)
-    return success
 end
 
 local isRunning = false
