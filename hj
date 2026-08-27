@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Features: Max Speed + Fuel Check + Compact Earnings Tracker
+-- // Version: Compact UI & Speed Limit 210
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -18,12 +18,13 @@ local PointA = nil
 local PointB = nil
 local GasStationPoint = nil
 local IsRefueling = false
+local TargetMaxSpeed = 210 -- تحديد السرعة القصوى لـ 210
 
 -- متغيرات حساب الأرباح
 local InitialMoney = 0
 local CurrentEarned = 0
 
--- إنشاء الواجهة (GUI)
+-- إنشاء الواجهة (GUI) - حجم مصغر
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RM8_UI"
 ScreenGui.Parent = CoreGui
@@ -34,100 +35,99 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 300)
+MainFrame.Position = UDim2.new(0.38, 0, 0.15, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 235) -- قائمة أصغر وأخف
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local FrameCorner = Instance.new("UICorner")
-FrameCorner.CornerRadius = UDim.new(0, 12)
+FrameCorner.CornerRadius = UDim.new(0, 10)
 FrameCorner.Parent = MainFrame
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 0, 0, 6)
-TitleLabel.Size = UDim2.new(1, 0, 0, 25)
+TitleLabel.Position = UDim2.new(0, 0, 0, 4)
+TitleLabel.Size = UDim2.new(1, 0, 0, 20)
 TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "حقوق: RM8 (أعلى سرعة ⚡)"
+TitleLabel.Text = "حقوق: RM8 (210 Max)"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 18
+TitleLabel.TextSize = 15
 
 local BtnPointA = Instance.new("TextButton")
 BtnPointA.Name = "BtnPointA"
 BtnPointA.Parent = MainFrame
-BtnPointA.Position = UDim2.new(0.08, 0, 0.13, 0)
-BtnPointA.Size = UDim2.new(0.84, 0, 0, 30)
+BtnPointA.Position = UDim2.new(0.06, 0, 0.12, 0)
+BtnPointA.Size = UDim2.new(0.88, 0, 0, 26)
 BtnPointA.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointA.Font = Enum.Font.SourceSansBold
 BtnPointA.Text = "حفظ المكان الأول: (غير محدد)"
 BtnPointA.TextColor3 = Color3.fromRGB(220, 220, 220)
-BtnPointA.TextSize = 13
-Instance.new("UICorner", BtnPointA).CornerRadius = UDim.new(0, 8)
+BtnPointA.TextSize = 12
+Instance.new("UICorner", BtnPointA).CornerRadius = UDim.new(0, 6)
 
 local BtnPointB = Instance.new("TextButton")
 BtnPointB.Name = "BtnPointB"
 BtnPointB.Parent = MainFrame
-BtnPointB.Position = UDim2.new(0.08, 0, 0.25, 0)
-BtnPointB.Size = UDim2.new(0.84, 0, 0, 30)
+BtnPointB.Position = UDim2.new(0.06, 0, 0.25, 0)
+BtnPointB.Size = UDim2.new(0.88, 0, 0, 26)
 BtnPointB.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointB.Font = Enum.Font.SourceSansBold
 BtnPointB.Text = "حفظ المكان الثاني: (غير محدد)"
 BtnPointB.TextColor3 = Color3.fromRGB(220, 220, 220)
-BtnPointB.TextSize = 13
-Instance.new("UICorner", BtnPointB).CornerRadius = UDim.new(0, 8)
+BtnPointB.TextSize = 12
+Instance.new("UICorner", BtnPointB).CornerRadius = UDim.new(0, 6)
 
 local BtnGas = Instance.new("TextButton")
 BtnGas.Name = "BtnGas"
 BtnGas.Parent = MainFrame
-BtnGas.Position = UDim2.new(0.08, 0, 0.37, 0)
-BtnGas.Size = UDim2.new(0.84, 0, 0, 30)
+BtnGas.Position = UDim2.new(0.06, 0, 0.38, 0)
+BtnGas.Size = UDim2.new(0.88, 0, 0, 26)
 BtnGas.BackgroundColor3 = Color3.fromRGB(180, 120, 30)
 BtnGas.Font = Enum.Font.SourceSansBold
 BtnGas.Text = "حفظ موقع المحطة: (اختياري)"
 BtnGas.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnGas.TextSize = 12
-Instance.new("UICorner", BtnGas).CornerRadius = UDim.new(0, 8)
+BtnGas.TextSize = 11
+Instance.new("UICorner", BtnGas).CornerRadius = UDim.new(0, 6)
 
 local BtnGoGas = Instance.new("TextButton")
 BtnGoGas.Name = "BtnGoGas"
 BtnGoGas.Parent = MainFrame
-BtnGoGas.Position = UDim2.new(0.08, 0, 0.49, 0)
-BtnGoGas.Size = UDim2.new(0.84, 0, 0, 30)
+BtnGoGas.Position = UDim2.new(0.06, 0, 0.51, 0)
+BtnGoGas.Size = UDim2.new(0.88, 0, 0, 26)
 BtnGoGas.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
 BtnGoGas.Font = Enum.Font.SourceSansBold
 BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
 BtnGoGas.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnGoGas.TextSize = 12
-Instance.new("UICorner", BtnGoGas).CornerRadius = UDim.new(0, 8)
+BtnGoGas.TextSize = 11
+Instance.new("UICorner", BtnGoGas).CornerRadius = UDim.new(0, 6)
 
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
-ToggleButton.Position = UDim2.new(0.08, 0, 0.62, 0)
-ToggleButton.Size = UDim2.new(0.84, 0, 0, 38)
+ToggleButton.Position = UDim2.new(0.06, 0, 0.64, 0)
+ToggleButton.Size = UDim2.new(0.88, 0, 0, 32)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Text = "بداية التجميع: (OFF)"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 16
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
+ToggleButton.TextSize = 14
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 6)
 
--- عداد الأرباح المصغر تحت زر بداية التجميع
+-- عداد الأرباح والبنزين مصغر تحت الزر
 local ProfitLabel = Instance.new("TextLabel")
 ProfitLabel.Name = "ProfitLabel"
 ProfitLabel.Parent = MainFrame
 ProfitLabel.BackgroundTransparency = 1
-ProfitLabel.Position = UDim2.new(0.08, 0, 0.77, 0)
-ProfitLabel.Size = UDim2.new(0.84, 0, 0, 55)
+ProfitLabel.Position = UDim2.new(0.06, 0, 0.80, 0)
+ProfitLabel.Size = UDim2.new(0.88, 0, 0, 40)
 ProfitLabel.Font = Enum.Font.SourceSansSemibold
 ProfitLabel.Text = "الأرباح: 0 $\nحالة البنزين: --%"
 ProfitLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-ProfitLabel.TextSize = 13
+ProfitLabel.TextSize = 11
 ProfitLabel.TextYAlignment = Enum.TextYAlignment.Top
 
--- جلب الفلوس الحالية للاعب
 local function GetPlayerMoney()
     local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
     if leaderstats then
@@ -164,7 +164,6 @@ local function GetVehicle()
     return nil, nil
 end
 
--- فحص كمية الوقود بالسيارة
 local function CheckFuelLevel(model)
     if not model then return 100 end
     for _, obj in ipairs(model:GetDescendants()) do
@@ -256,7 +255,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة تحديث العداد وفحص البنزين تلقائياً
+-- حلقة تحديث العداد وفحص البنزين
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -270,7 +269,6 @@ task.spawn(function()
             end
             ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nحالة البنزين: " .. math.floor(fuel) .. "%"
             
-            -- فحص التعبئة تلقائياً إذا شارف البنزين على الانتهاء وكان موقع المحطة محفوظاً
             if fuel <= 5 and GasStationPoint and not IsRefueling then
                 GoRefuel()
             end
@@ -280,7 +278,7 @@ task.spawn(function()
     end
 end)
 
--- حلقة الحركة للتجميع بأعلى سرعة
+-- حلقة الحركة للتجميع مع تحديد السرعة بـ 210
 task.spawn(function()
     while true do
         task.wait(0.1)
@@ -298,11 +296,9 @@ task.spawn(function()
                     local targetPos = PointB.Position
                     local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
-                    local maxSpeed = math.max(currentSeat.MaxSpeed * 2.5, 400)
-                    
-                    if dist > 35 then
+                    if dist > 30 then
                         local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * maxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * maxSpeed)
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetMaxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * TargetMaxSpeed)
                     else
                         SafeTeleport(vehModel, PointA)
                         task.wait(0.2)
