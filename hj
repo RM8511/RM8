@@ -1,7 +1,7 @@
 -- // ================================================
--- // Script: Driving Simulator Auto Farm UI
+-- // Script: Driving Simulator Auto Farm UI (Custom Waypoints)
 -- // Developer Rights: RM8
--- // Fixed: Instant 160 Speed / Teleport to Start / Instant U-Turn / Grounded Wheels
+-- // Features: Custom Point A & B / Instant 160 Speed / No Wheel Glitch
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -14,8 +14,9 @@ if CoreGui:FindFirstChild("RM8_UI") then
 end
 
 local AutoFarmEnabled = false
-local TargetSpeed = 100 -- سرعة 160 كم/س بالفيزياء المباشرة
-local DriveDistance = 2200 -- مسافة الطريق قبل التدوير
+local PointA = nil -- موقع البداية
+local PointB = nil -- موقع النهاية (نقطة التدوير/الانتقال)
+local TargetSpeed = 100 -- سرعة 160 كم/س
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -29,7 +30,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 110)
+MainFrame.Size = UDim2.new(0, 260, 0, 190)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -41,29 +42,62 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 0, 0, 10)
+TitleLabel.Position = UDim2.new(0, 0, 0, 8)
 TitleLabel.Size = UDim2.new(1, 0, 0, 25)
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.Text = "حقوق: RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 20
 
+-- زر حفظ المكان الأول
+local BtnPointA = Instance.new("TextButton")
+BtnPointA.Name = "BtnPointA"
+BtnPointA.Parent = MainFrame
+BtnPointA.Position = UDim2.new(0.08, 0, 0.22, 0)
+BtnPointA.Size = UDim2.new(0.84, 0, 0, 35)
+BtnPointA.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+BtnPointA.Font = Enum.Font.SourceSansBold
+BtnPointA.Text = "حفظ المكان الأول: (غير محدد)"
+BtnPointA.TextColor3 = Color3.fromRGB(220, 220, 220)
+BtnPointA.TextSize = 15
+
+local CornerA = Instance.new("UICorner")
+CornerA.CornerRadius = UDim.new(0, 8)
+CornerA.Parent = BtnPointA
+
+-- زر حفظ المكان الثاني
+local BtnPointB = Instance.new("TextButton")
+BtnPointB.Name = "BtnPointB"
+BtnPointB.Parent = MainFrame
+BtnPointB.Position = UDim2.new(0.08, 0, 0.44, 0)
+BtnPointB.Size = UDim2.new(0.84, 0, 0, 35)
+BtnPointB.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+BtnPointB.Font = Enum.Font.SourceSansBold
+BtnPointB.Text = "حفظ المكان الثاني: (غير محدد)"
+BtnPointB.TextColor3 = Color3.fromRGB(220, 220, 220)
+BtnPointB.TextSize = 15
+
+local CornerB = Instance.new("UICorner")
+CornerB.CornerRadius = UDim.new(0, 8)
+CornerB.Parent = BtnPointB
+
+-- زر تشغيل التجميع
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
-ToggleButton.Position = UDim2.new(0.08, 0, 0.42, 0)
-ToggleButton.Size = UDim2.new(0.84, 0, 0, 48)
+ToggleButton.Position = UDim2.new(0.08, 0, 0.68, 0)
+ToggleButton.Size = UDim2.new(0.84, 0, 0, 45)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Text = "بداية التجميع: (OFF)"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 19
+ToggleButton.TextSize = 18
 
 local ButtonCorner = Instance.new("UICorner")
-ButtonCorner.CornerRadius = UDim.new(0, 10)
+ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
--- دالة جلب المركبة وجزء الهيكل الأساسي
+-- دالة جلب جزء الهيكل الأساسي والمقعد
 local function GetVehicleData()
     local success, seat, root = pcall(function()
         local char = LocalPlayer.Character
@@ -81,7 +115,41 @@ local function GetVehicleData()
     return nil, nil
 end
 
+-- أحداث الأزرار
+BtnPointA.MouseButton1Click:Connect(function()
+    local seat, root = GetVehicleData()
+    if root then
+        PointA = root.CFrame
+        BtnPointA.Text = "تم حفظ المكان الأول ✓"
+        BtnPointA.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+    else
+        BtnPointA.Text = "اركب سيارة أولاً!"
+        task.wait(1)
+        if not PointA then BtnPointA.Text = "حفظ المكان الأول: (غير محدد)" end
+    end
+end)
+
+BtnPointB.MouseButton1Click:Connect(function()
+    local seat, root = GetVehicleData()
+    if root then
+        PointB = root.CFrame
+        BtnPointB.Text = "تم حفظ المكان الثاني ✓"
+        BtnPointB.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+    else
+        BtnPointB.Text = "اركب سيارة أولاً!"
+        task.wait(1)
+        if not PointB then BtnPointB.Text = "حفظ المكان الثاني: (غير محدد)" end
+    end
+end)
+
 ToggleButton.MouseButton1Click:Connect(function()
+    if not PointA or not PointB then
+        ToggleButton.Text = "حدد المكانين أولاً!"
+        task.wait(1)
+        ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
+        return
+    end
+
     AutoFarmEnabled = not AutoFarmEnabled
     
     if AutoFarmEnabled then
@@ -93,38 +161,39 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة التجميع الرئيسية
+-- حلقة التجميع والقيادة بين النقطتين
 task.spawn(function()
     while task.wait(0.1) do
-        if AutoFarmEnabled then
+        if AutoFarmEnabled and PointA and PointB then
             local seat, root = GetVehicleData()
             if seat and root then
-                -- 1. حفظ موقع البداية والنقل الفوري له عند التشغيل
-                local startCFrame = root.CFrame
+                -- 1. الانتقال فوراً للمكان الأول
+                root.CFrame = PointA
+                task.wait(0.1)
                 
                 while AutoFarmEnabled do
                     local currentSeat, currentRoot = GetVehicleData()
                     if not currentSeat or currentRoot ~= root then break end
                     
-                    -- مسار الذهاب (160 كم/س)
-                    local moved = 0
-                    while AutoFarmEnabled and moved < DriveDistance do
-                        if not GetVehicleData() then break end
+                    -- حساب الاتجاه المسار والمسافة نحو المكان الثاني
+                    local targetPos = PointB.Position
+                    local currentPos = currentRoot.Position
+                    local distance = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
+                    
+                    -- المشي باتجاه المكان الثاني بسرعة 160 كم/س
+                    if distance > 15 then
+                        local moveDirection = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
+                        currentRoot.AssemblyLinearVelocity = Vector3.new(moveDirection.X * TargetSpeed, currentRoot.AssemblyLinearVelocity.Y, moveDirection.Z * TargetSpeed)
                         
-                        -- دفع الموتر بسلاسة للأمام مع الحفاظ على ملاصقة الأرض
-                        local currentLook = currentRoot.CFrame.LookVector
-                        currentRoot.AssemblyLinearVelocity = Vector3.new(currentLook.X * TargetSpeed, currentRoot.AssemblyLinearVelocity.Y, currentLook.Z * TargetSpeed)
-                        
-                        moved = moved + 20
-                        RunService.RenderStepped:Wait()
+                        -- توجيه الموتر باتجاه الهدف لثبات الفيزيا
+                        currentRoot.CFrame = CFrame.new(currentRoot.Position, Vector3.new(targetPos.X, currentRoot.Position.Y, targetPos.Z))
+                    else
+                        -- 2. عند الوصول للمكان الثاني يتم العودة فوراً للمكان الأول
+                        currentRoot.CFrame = PointA
+                        task.wait(0.05)
                     end
                     
-                    -- 2. التدواير الفوري (180 درجة) بدون إيقاف الموتر أو تهدئة
-                    if AutoFarmEnabled and GetVehicleData() then
-                        currentRoot.CFrame = currentRoot.CFrame * CFrame.Angles(0, math.rad(180), 0)
-                    end
-                    
-                    task.wait(0.05)
+                    RunService.RenderStepped:Wait()
                 end
             end
         end
