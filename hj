@@ -1,8 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // GitHub Raw File Script
--- // Features: Smooth Straight Driving, Loop Teleport, Auto Farm
+-- // Features: Smooth Forward & Backward Drive to Saved Point
 -- // Protected against nil errors & mobile lag
 -- // ================================================
 
@@ -11,20 +10,15 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- إلغاء الواجهة القديمة إن وجدت لمنع تكرار القائمة
 if CoreGui:FindFirstChild("RM8_UI") then
     CoreGui.RM8_UI:Destroy()
 end
 
--- متغيرات التحكم والإعدادات
 local AutoFarmEnabled = false
-local DrivingSpeed = 140 -- سرعة متوازنة لتفادي الـ Lag والكراش
-local LoopDistance = 1800 -- المسافة للشارع المستقيم قبل إعادة التموضع
+local DrivingSpeed = 140 -- سرعة الذهاب والإياب
+local RoadLength = 2200 -- طول الشارع المستقيم
 
--- // ================================================
--- // إنشاء الواجهة (GUI)
--- // ================================================
-
+-- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RM8_UI"
 ScreenGui.Parent = CoreGui
@@ -35,16 +29,15 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
 MainFrame.Size = UDim2.new(0, 260, 0, 110)
 MainFrame.Active = true
-MainFrame.Draggable = true -- إمكانية تحريك القائمة باللمس على الجوال
+MainFrame.Draggable = true
 
 local FrameCorner = Instance.new("UICorner")
 FrameCorner.CornerRadius = UDim.new(0, 12)
 FrameCorner.Parent = MainFrame
 
--- العنوان الرئيسي (حقوقك)
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
@@ -56,13 +49,12 @@ TitleLabel.Text = "حقوق: RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 20
 
--- زر التجميع (بداية التجميع)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
 ToggleButton.Position = UDim2.new(0.08, 0, 0.42, 0)
 ToggleButton.Size = UDim2.new(0.84, 0, 0, 48)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40) -- أحمر (OFF)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Text = "بداية التجميع: (OFF)"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -72,11 +64,6 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 10)
 ButtonCorner.Parent = ToggleButton
 
--- // ================================================
--- // الوظائف والبرمجة الحماية (Pcall Protection)
--- // ================================================
-
--- التحقق الآمن من مقعد المركبة
 local function GetVehicle()
     local success, result = pcall(function()
         local char = LocalPlayer.Character
@@ -91,23 +78,19 @@ local function GetVehicle()
     return success and result or nil
 end
 
--- حدث الضغط على زر التشغيل/الإيقاف
 ToggleButton.MouseButton1Click:Connect(function()
     AutoFarmEnabled = not AutoFarmEnabled
     
     if AutoFarmEnabled then
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 180, 50) -- أخضر (ON)
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 180, 50)
         ToggleButton.Text = "بداية التجميع: (ON)"
     else
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40) -- أحمر (OFF)
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         ToggleButton.Text = "بداية التجميع: (OFF)"
     end
 end)
 
--- // ================================================
--- // حلقة التجميع التلقائي للشارع المستقيم
--- // ================================================
-
+-- حلقة التجميع: قيادة للأمام ثم العودة للخلف (ريوس)
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled then
@@ -115,25 +98,33 @@ task.spawn(function()
             if veh then
                 local root = veh.PrimaryPart or veh:FindFirstChildWhichIsA("BasePart")
                 if root then
-                    local startCFrame = root.CFrame
                     local forwardVec = root.CFrame.LookVector
-                    local movedDistance = 0
+                    local distanceTraveled = 0
                     
-                    -- القيادة في خط مستقيم
-                    while AutoFarmEnabled and movedDistance < LoopDistance do
+                    -- 1. الذهاب للأمام لين نهاية الطريق
+                    while AutoFarmEnabled and distanceTraveled < RoadLength do
                         local currentVeh = GetVehicle()
                         if not currentVeh or currentVeh ~= veh then break end
                         
                         root.AssemblyLinearVelocity = forwardVec * DrivingSpeed
-                        movedDistance = movedDistance + (DrivingSpeed * 0.03)
+                        distanceTraveled = distanceTraveled + (DrivingSpeed * 0.03)
                         RunService.RenderStepped:Wait()
                     end
                     
-                    -- العودة لنقطة البداية بشكل آمن بدون الانقلاب أو الطيران
+                    task.wait(0.2)
+                    
+                    -- 2. الرجوع للخلف (ريوس) لنفس خط البداية
+                    while AutoFarmEnabled and distanceTraveled > 0 do
+                        local currentVeh = GetVehicle()
+                        if not currentVeh or currentVeh ~= veh then break end
+                        
+                        root.AssemblyLinearVelocity = -forwardVec * DrivingSpeed
+                        distanceTraveled = distanceTraveled - (DrivingSpeed * 0.03)
+                        RunService.RenderStepped:Wait()
+                    end
+                    
                     if GetVehicle() == veh then
                         root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                        root.CFrame = startCFrame
-                        task.wait(0.2)
                     end
                 end
             end
