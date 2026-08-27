@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Fixed: No Auto Refuel Crash On Spawn
+-- // Feature: Max Vehicle Speed Auto Farm
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -17,7 +17,6 @@ local AutoFarmEnabled = false
 local PointA = nil
 local PointB = nil
 local GasStationPoint = nil
-local MoveSpeed = 150
 local IsRefueling = false
 
 -- إنشاء الواجهة (GUI)
@@ -47,9 +46,9 @@ TitleLabel.BackgroundTransparency = 1
 TitleLabel.Position = UDim2.new(0, 0, 0, 6)
 TitleLabel.Size = UDim2.new(1, 0, 0, 25)
 TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "حقوق: RM8"
+TitleLabel.Text = "حقوق: RM8 (أعلى سرعة ⚡)"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 20
+TitleLabel.TextSize = 18
 
 local BtnPointA = Instance.new("TextButton")
 BtnPointA.Name = "BtnPointA"
@@ -198,7 +197,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
 end)
 
--- حلقة الحركة للتجميع بين المكانين
+-- حلقة الحركة للتجميع بأعلى سرعة مدعومة
 task.spawn(function()
     while true do
         task.wait(0.1)
@@ -216,15 +215,18 @@ task.spawn(function()
                     local targetPos = PointB.Position
                     local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
-                    if dist > 20 then
+                    -- قراءة أقصى سرعة للمقعد تلقائياً أو رفعها لأقصى حد للموتر
+                    local maxSpeed = math.max(currentSeat.MaxSpeed * 2.5, 400)
+                    
+                    if dist > 35 then
                         local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * MoveSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * MoveSpeed)
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * maxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * maxSpeed)
                     else
                         SafeTeleport(vehModel, PointA)
                         task.wait(0.2)
                     end
                     
-                    task.wait(0.03)
+                    task.wait(0.02)
                 end
             end
         end
