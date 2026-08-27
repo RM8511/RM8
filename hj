@@ -383,4 +383,19 @@ task.spawn(function()
                     
                     local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
-                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.
+                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
+                    
+                    if dist > 30 then
+                        local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetMaxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * TargetMaxSpeed)
+                    else
+                        SafeTeleport(vehModel, PointA)
+                        task.wait(0.2)
+                    end
+                    
+                    task.wait(0.02)
+                end
+            end
+        end
+    end
+end)
