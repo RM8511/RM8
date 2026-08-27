@@ -1,12 +1,13 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Feature: Auto Refuel Until Tank reaches 130
+-- // Feature: Full Auto Refuel (Prompt + E-Key + Touch) until 130
 -- // ================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 
@@ -20,7 +21,7 @@ local PointB = nil
 local GasStationPoint = nil
 local IsRefueling = false
 local TargetMaxSpeed = 185
-local TargetFuelLevel = 130 -- الحد المطلوب للبنزين للعودة للتجميع
+local TargetFuelLevel = 130
 
 -- متغيرات حساب الأرباح
 local InitialMoney = 0
@@ -215,11 +216,32 @@ local function SafeTeleport(model, targetCFrame)
     end
 end
 
-local function TriggerGasStationPrompts()
+-- وظيفة ضغط أزرار التعبئة بجميع الطرق الممكنة (Prompts + Keys + Touch)
+local function ForceRefuelPress()
     pcall(function()
+        -- 1. تفعيل أي ProximityPrompt قريب باللعبة
         for _, prompt in ipairs(workspace:GetDescendants()) do
-            if prompt:IsA("ProximityPrompt") and (string.find(string.lower(prompt.ActionText), "gas") or string.find(string.lower(prompt.ActionText), "refuel") or string.find(string.lower(prompt.ActionText), "fuel") or string.find(prompt.ActionText, "تعبئة") or string.find(prompt.ActionText, "بنزين")) then
+            if prompt:IsA("ProximityPrompt") then
                 fireproximityprompt(prompt)
+            end
+        end
+        -- 2. محاكاة ضغط زر E للكيبورد
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+
+        -- 3. تفعيل الأزرار التي تظهر على الشاشة (GUI) الخاصة بالتعبئة إن وجدت
+        local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if pGui then
+            for _, btn in ipairs(pGui:GetDescendants()) do
+                if btn:IsA("TextButton") or btn:IsA("ImageButton") then
+                    local txt = string.lower(btn.Name .. (btn:IsA("TextButton") and btn.Text or ""))
+                    if string.find(txt, "gas") or string.find(txt, "refuel") or string.find(txt, "fuel") or string.find(txt, "تعبئة") or string.find(txt, "بنزين") or string.find(txt, "شراء") then
+                        for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
+                            conn:Fire()
+                        end
+                    end
+                end
             end
         end
     end)
@@ -252,7 +274,7 @@ BtnGas.MouseButton1Click:Connect(function()
     end
 end)
 
--- وظيفة التعبئة التلقائية حتى التانكي يوصل 130
+-- حلقة التعبئة الذكية حتى يوصل التانكي 130
 local function GoRefuel()
     local vehModel, seat = GetVehicle()
     if not GasStationPoint then return end
@@ -262,18 +284,19 @@ local function GoRefuel()
         
         BtnGoGas.Text = "جاري التعبئة حتى 130... ⛽"
         
-        -- مخرج طوارئ أقصى حد للتعبئة لتجنب التعليق اللانهائي (60 ثانية)
         local timeoutCounter = 0
         
         while IsRefueling do
-            task.wait(0.5)
-            timeoutCounter = timeoutCounter + 0.5
+            task.wait(0.3)
+            timeoutCounter = timeoutCounter + 0.3
             
-            TriggerGasStationPrompts()
+            -- ضغط زر التعبئة بشكل مستمر
+            ForceRefuelPress()
+            
             local currentFuel = CheckFuelLevel(vehModel)
             
-            -- عند الوصول لـ 130 أو أكثر، يرجع للتجميع فوراً
-            if currentFuel >= TargetFuelLevel or timeoutCounter >= 60 then
+            -- الوصول إلى 130 أو أكثر يوقف التعبئة فوراً ويرجع للتجميع
+            if currentFuel >= TargetFuelLevel or timeoutCounter >= 90 then
                 break
             end
         end
@@ -360,19 +383,4 @@ task.spawn(function()
                     
                     local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
-                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
-                    
-                    if dist > 30 then
-                        local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetMaxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * TargetMaxSpeed)
-                    else
-                        SafeTeleport(vehModel, PointA)
-                        task.wait(0.2)
-                    end
-                    
-                    task.wait(0.02)
-                end
-            end
-        end
-    end
-end)
+                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.
