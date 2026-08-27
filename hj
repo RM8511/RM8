@@ -1,7 +1,7 @@
 -- // ================================================
--- // Script: Driving Simulator Auto Farm UI (Safe Teleport & Drive)
+-- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Fixed: Speed Boosted to 160 / No Rollover / Smooth Waypoints
+-- // Features: Waypoints, 160 Speed, Auto Refuel at Gas Station
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -16,7 +16,11 @@ end
 local AutoFarmEnabled = false
 local PointA = nil
 local PointB = nil
-local MoveSpeed = 160 -- تم التعديل إلى سرعة 160 كم/س بالضبط
+local MoveSpeed = 160
+local IsRefueling = false
+
+-- إحداثيات محطة البنزين القريبة تلقائياً (أو موقع التعبئة)
+local GasStationCFrame = CFrame.new(-1200, 15, 800) 
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -49,7 +53,6 @@ TitleLabel.Text = "حقوق: RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 20
 
--- زر حفظ المكان الأول
 local BtnPointA = Instance.new("TextButton")
 BtnPointA.Name = "BtnPointA"
 BtnPointA.Parent = MainFrame
@@ -65,7 +68,6 @@ local CornerA = Instance.new("UICorner")
 CornerA.CornerRadius = UDim.new(0, 8)
 CornerA.Parent = BtnPointA
 
--- زر حفظ المكان الثاني
 local BtnPointB = Instance.new("TextButton")
 BtnPointB.Name = "BtnPointB"
 BtnPointB.Parent = MainFrame
@@ -81,7 +83,6 @@ local CornerB = Instance.new("UICorner")
 CornerB.CornerRadius = UDim.new(0, 8)
 CornerB.Parent = BtnPointB
 
--- زر تشغيل التجميع
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
@@ -122,6 +123,26 @@ local function SafeTeleport(model, targetCFrame)
         end
         model:PivotTo(targetCFrame)
     end
+end
+
+-- فحص هل البنزين خلص أو السيارة طفت
+local function CheckNeedFuel(model, seat)
+    if not model then return false end
+    
+    -- البحث عن قيمة البنزين في السيارة
+    local fuelValue = model:FindFirstChild("Fuel", true) or model:FindFirstChild("Gas", true) or model:FindFirstChild("Gasoline", true)
+    if fuelValue and (fuelValue:IsA("NumberValue") or fuelValue:IsA("IntValue")) then
+        if fuelValue.Value <= 5 then
+            return true
+        end
+    end
+    
+    -- فحص ما إذا كانت السيارة طافية ولا تتحرك عند إعطاء بنزين
+    if seat and seat.ThrottleFloat > 0 and seat.AssemblyLinearVelocity.Magnitude < 2 then
+        return true
+    end
+    
+    return false
 end
 
 BtnPointA.MouseButton1Click:Connect(function()
@@ -169,6 +190,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- حلقة التجميع مع التعبئة التلقائية
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled and PointA and PointB then
@@ -181,15 +203,28 @@ task.spawn(function()
                     local currentModel, currentSeat = GetVehicle()
                     if not currentModel or currentModel ~= vehModel then break end
                     
+                    -- التحقق من البنزين
+                    if CheckNeedFuel(currentModel, currentSeat) then
+                        IsRefueling = true
+                        ToggleButton.Text = "جاري التعبئة... ⛽"
+                        
+                        -- الانتقال للمحطة
+                        SafeTeleport(currentModel, GasStationCFrame)
+                        task.wait(5) -- وقت التعبئة فل
+                        
+                        -- العودة للمكان الأول
+                        SafeTeleport(currentModel, PointA)
+                        IsRefueling = false
+                        ToggleButton.Text = "بداية التجميع: (ON)"
+                        task.wait(0.2)
+                    end
+                    
                     local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
-                    
                     local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
                     if dist > 25 then
                         local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        
-                        -- دفع السرعة لتوصل 160 كم/س مباشرة
                         currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * (MoveSpeed * 1.15), currentSeat.AssemblyLinearVelocity.Y, dir.Z * (MoveSpeed * 1.15))
                         currentModel:PivotTo(CFrame.new(currentPos, Vector3.new(targetPos.X, currentPos.Y, targetPos.Z)))
                     else
