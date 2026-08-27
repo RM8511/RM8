@@ -1,43 +1,139 @@
--- // RM8 - Straight Road Auto Farm (No Errors)
--- // تجميع تلقائي خط مستقيم بدون ساهر
+-- // ================================================
+-- // Script: Driving Simulator Auto Farm UI
+-- // Developer Rights: RM8
+-- // Features: Smooth Straight Driving, Loop Teleport, Auto Farm
+-- // Protected against nil errors & mobile lag
+-- // ================================================
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
-local AutoFarm = true
-local Distance = 2000 -- المسافة المطلوبة للقيادة قبل إعادة التجميع
-local DrivingSpeed = 120 -- السرعة الآمنة لمنع الـ Lag أو التعليق
-
-local function getVehicle()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        local seat = LocalPlayer.Character.Humanoid.SeatPart
-        if seat and seat:IsA("VehicleSeat") then
-            return seat.Parent
-        end
-    end
-    return nil
+-- إلغاء الواجهة القديمة إن وجدت لمنع تكرار القائمة
+if CoreGui:FindFirstChild("RM8_UI") then
+    CoreGui.RM8_UI:Destroy()
 end
+
+-- متغيرات التحكم والإعدادات
+local AutoFarmEnabled = false
+local DrivingSpeed = 140 -- سرعة متوازنة لتفادي الـ Lag والكراش
+local LoopDistance = 1800 -- المسافة للشارع المستقيم قبل إعادة التموضع
+
+-- // ================================================
+-- // إنشاء الواجهة (GUI)
+-- // ================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RM8_UI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 260, 0, 110)
+MainFrame.Active = true
+MainFrame.Draggable = true -- إمكانية تحريك القائمة باللمس على الجوال
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 12)
+FrameCorner.Parent = MainFrame
+
+-- العنوان الرئيسي (حقوقك)
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 0, 0, 10)
+TitleLabel.Size = UDim2.new(1, 0, 0, 25)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Text = "حقوق: RM8"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 20
+
+-- زر التجميع (بداية التجميع)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = MainFrame
+ToggleButton.Position = UDim2.new(0.08, 0, 0.42, 0)
+ToggleButton.Size = UDim2.new(0.84, 0, 0, 48)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40) -- أحمر (OFF)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "بداية التجميع: (OFF)"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 19
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 10)
+ButtonCorner.Parent = ToggleButton
+
+-- // ================================================
+-- // الوظائف والبرمجة الحماية (Pcall Protection)
+-- // ================================================
+
+-- التحقق الآمن من مقعد المركبة
+local function GetVehicle()
+    local success, result = pcall(function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            local seat = char.Humanoid.SeatPart
+            if seat and seat:IsA("VehicleSeat") and seat.Parent then
+                return seat.Parent
+            end
+        end
+        return nil
+    end)
+    return success and result or nil
+end
+
+-- حدث الضغط على زر التشغيل/الإيقاف
+ToggleButton.MouseButton1Click:Connect(function()
+    AutoFarmEnabled = not AutoFarmEnabled
+    
+    if AutoFarmEnabled then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 180, 50) -- أخضر (ON)
+        ToggleButton.Text = "بداية التجميع: (ON)"
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40) -- أحمر (OFF)
+        ToggleButton.Text = "بداية التجميع: (OFF)"
+    end
+end)
+
+-- // ================================================
+-- // حلقة التجميع التلقائي للشارع المستقيم
+-- // ================================================
 
 task.spawn(function()
     while task.wait(0.1) do
-        if AutoFarm then
-            local veh = getVehicle()
-            if veh and veh.PrimaryPart then
-                local root = veh.PrimaryPart
-                local startCFrame = root.CFrame
-                
-                -- القيادة للأمام في خط مستقيم
-                for i = 1, Distance, 10 do
-                    if not AutoFarm or not getVehicle() then break end
-                    root.CFrame = root.CFrame + (root.CFrame.LookVector * 10)
-                    root.AssemblyLinearVelocity = root.CFrame.LookVector * DrivingSpeed
-                    task.wait(0.05)
-                end
-                
-                -- العودة لنقطة البداية لتكرار العملية
-                task.wait(0.5)
-                if veh and veh.PrimaryPart then
-                    veh:SetPrimaryPartCFrame(startCFrame)
+        if AutoFarmEnabled then
+            local veh = GetVehicle()
+            if veh then
+                local root = veh.PrimaryPart or veh:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    local startCFrame = root.CFrame
+                    local forwardVec = root.CFrame.LookVector
+                    local movedDistance = 0
+                    
+                    -- القيادة في خط مستقيم
+                    while AutoFarmEnabled and movedDistance < LoopDistance do
+                        local currentVeh = GetVehicle()
+                        if not currentVeh or currentVeh ~= veh then break end
+                        
+                        root.AssemblyLinearVelocity = forwardVec * DrivingSpeed
+                        movedDistance = movedDistance + (DrivingSpeed * 0.03)
+                        RunService.RenderStepped:Wait()
+                    end
+                    
+                    -- العودة لنقطة البداية بشكل آمن بدون الانقلاب أو الطيران
+                    if GetVehicle() == veh then
+                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        root.CFrame = startCFrame
+                        task.wait(0.2)
+                    end
                 end
             end
         end
