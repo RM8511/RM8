@@ -1,7 +1,7 @@
 -- // ================================================
--- // Script: Driving Simulator Auto Farm UI (Custom Waypoints)
+-- // Script: Driving Simulator Auto Farm UI (Safe Teleport & Drive)
 -- // Developer Rights: RM8
--- // Features: Custom Point A & B / Instant 160 Speed / No Wheel Glitch
+-- // Fixed: Speed Boosted to 160 / No Rollover / Smooth Waypoints
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -14,9 +14,9 @@ if CoreGui:FindFirstChild("RM8_UI") then
 end
 
 local AutoFarmEnabled = false
-local PointA = nil -- موقع البداية
-local PointB = nil -- موقع النهاية (نقطة التدوير/الانتقال)
-local TargetSpeed = 100 -- سرعة 160 كم/س
+local PointA = nil
+local PointB = nil
+local MoveSpeed = 160 -- تم التعديل إلى سرعة 160 كم/س بالضبط
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -97,29 +97,37 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
--- دالة جلب جزء الهيكل الأساسي والمقعد
-local function GetVehicleData()
-    local success, seat, root = pcall(function()
+local function GetVehicle()
+    local success, model, seat = pcall(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             local seatPart = char.Humanoid.SeatPart
             if seatPart and seatPart:IsA("VehicleSeat") and seatPart.Parent then
-                local model = seatPart.Parent
-                local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-                return seatPart, primary
+                return seatPart.Parent, seatPart
             end
         end
         return nil, nil
     end)
-    if success then return seat, root end
+    if success then return model, seat end
     return nil, nil
 end
 
--- أحداث الأزرار
+local function SafeTeleport(model, targetCFrame)
+    if model then
+        for _, part in ipairs(model:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+        model:PivotTo(targetCFrame)
+    end
+end
+
 BtnPointA.MouseButton1Click:Connect(function()
-    local seat, root = GetVehicleData()
-    if root then
-        PointA = root.CFrame
+    local vehModel, seat = GetVehicle()
+    if vehModel and seat then
+        PointA = seat.CFrame
         BtnPointA.Text = "تم حفظ المكان الأول ✓"
         BtnPointA.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
     else
@@ -130,9 +138,9 @@ BtnPointA.MouseButton1Click:Connect(function()
 end)
 
 BtnPointB.MouseButton1Click:Connect(function()
-    local seat, root = GetVehicleData()
-    if root then
-        PointB = root.CFrame
+    local vehModel, seat = GetVehicle()
+    if vehModel and seat then
+        PointB = seat.CFrame
         BtnPointB.Text = "تم حفظ المكان الثاني ✓"
         BtnPointB.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
     else
@@ -161,36 +169,32 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة التجميع والقيادة بين النقطتين
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled and PointA and PointB then
-            local seat, root = GetVehicleData()
-            if seat and root then
-                -- 1. الانتقال فوراً للمكان الأول
-                root.CFrame = PointA
+            local vehModel, seat = GetVehicle()
+            if vehModel and seat then
+                SafeTeleport(vehModel, PointA)
                 task.wait(0.1)
                 
                 while AutoFarmEnabled do
-                    local currentSeat, currentRoot = GetVehicleData()
-                    if not currentSeat or currentRoot ~= root then break end
+                    local currentModel, currentSeat = GetVehicle()
+                    if not currentModel or currentModel ~= vehModel then break end
                     
-                    -- حساب الاتجاه المسار والمسافة نحو المكان الثاني
+                    local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
-                    local currentPos = currentRoot.Position
-                    local distance = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
-                    -- المشي باتجاه المكان الثاني بسرعة 160 كم/س
-                    if distance > 15 then
-                        local moveDirection = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentRoot.AssemblyLinearVelocity = Vector3.new(moveDirection.X * TargetSpeed, currentRoot.AssemblyLinearVelocity.Y, moveDirection.Z * TargetSpeed)
+                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
+                    
+                    if dist > 25 then
+                        local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
                         
-                        -- توجيه الموتر باتجاه الهدف لثبات الفيزيا
-                        currentRoot.CFrame = CFrame.new(currentRoot.Position, Vector3.new(targetPos.X, currentRoot.Position.Y, targetPos.Z))
+                        -- دفع السرعة لتوصل 160 كم/س مباشرة
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * (MoveSpeed * 1.15), currentSeat.AssemblyLinearVelocity.Y, dir.Z * (MoveSpeed * 1.15))
+                        currentModel:PivotTo(CFrame.new(currentPos, Vector3.new(targetPos.X, currentPos.Y, targetPos.Z)))
                     else
-                        -- 2. عند الوصول للمكان الثاني يتم العودة فوراً للمكان الأول
-                        currentRoot.CFrame = PointA
-                        task.wait(0.05)
+                        SafeTeleport(vehModel, PointA)
+                        task.wait(0.1)
                     end
                     
                     RunService.RenderStepped:Wait()
