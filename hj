@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Fixed: Teleport Glitch & Station Default Bug
+-- // Fixed: No Auto Refuel Crash On Spawn
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -32,7 +32,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 240)
+MainFrame.Size = UDim2.new(0, 260, 0, 270)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -54,7 +54,7 @@ TitleLabel.TextSize = 20
 local BtnPointA = Instance.new("TextButton")
 BtnPointA.Name = "BtnPointA"
 BtnPointA.Parent = MainFrame
-BtnPointA.Position = UDim2.new(0.08, 0, 0.16, 0)
+BtnPointA.Position = UDim2.new(0.08, 0, 0.14, 0)
 BtnPointA.Size = UDim2.new(0.84, 0, 0, 32)
 BtnPointA.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointA.Font = Enum.Font.SourceSansBold
@@ -66,7 +66,7 @@ Instance.new("UICorner", BtnPointA).CornerRadius = UDim.new(0, 8)
 local BtnPointB = Instance.new("TextButton")
 BtnPointB.Name = "BtnPointB"
 BtnPointB.Parent = MainFrame
-BtnPointB.Position = UDim2.new(0.08, 0, 0.32, 0)
+BtnPointB.Position = UDim2.new(0.08, 0, 0.28, 0)
 BtnPointB.Size = UDim2.new(0.84, 0, 0, 32)
 BtnPointB.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointB.Font = Enum.Font.SourceSansBold
@@ -78,7 +78,7 @@ Instance.new("UICorner", BtnPointB).CornerRadius = UDim.new(0, 8)
 local BtnGas = Instance.new("TextButton")
 BtnGas.Name = "BtnGas"
 BtnGas.Parent = MainFrame
-BtnGas.Position = UDim2.new(0.08, 0, 0.48, 0)
+BtnGas.Position = UDim2.new(0.08, 0, 0.42, 0)
 BtnGas.Size = UDim2.new(0.84, 0, 0, 32)
 BtnGas.BackgroundColor3 = Color3.fromRGB(180, 120, 30)
 BtnGas.Font = Enum.Font.SourceSansBold
@@ -87,10 +87,22 @@ BtnGas.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnGas.TextSize = 13
 Instance.new("UICorner", BtnGas).CornerRadius = UDim.new(0, 8)
 
+local BtnGoGas = Instance.new("TextButton")
+BtnGoGas.Name = "BtnGoGas"
+BtnGoGas.Parent = MainFrame
+BtnGoGas.Position = UDim2.new(0.08, 0, 0.56, 0)
+BtnGoGas.Size = UDim2.new(0.84, 0, 0, 32)
+BtnGoGas.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+BtnGoGas.Font = Enum.Font.SourceSansBold
+BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+BtnGoGas.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnGoGas.TextSize = 13
+Instance.new("UICorner", BtnGoGas).CornerRadius = UDim.new(0, 8)
+
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
-ToggleButton.Position = UDim2.new(0.08, 0, 0.68, 0)
+ToggleButton.Position = UDim2.new(0.08, 0, 0.72, 0)
 ToggleButton.Size = UDim2.new(0.84, 0, 0, 42)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
@@ -154,6 +166,25 @@ BtnGas.MouseButton1Click:Connect(function()
     end
 end)
 
+BtnGoGas.MouseButton1Click:Connect(function()
+    local vehModel, seat = GetVehicle()
+    if not GasStationPoint then
+        BtnGoGas.Text = "احفظ موقع المحطة أولاً!"
+        task.wait(1)
+        BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+        return
+    end
+    if vehModel and seat then
+        IsRefueling = true
+        SafeTeleport(vehModel, GasStationPoint)
+        task.wait(4)
+        if PointA and AutoFarmEnabled then
+            SafeTeleport(vehModel, PointA)
+        end
+        IsRefueling = false
+    end
+end)
+
 ToggleButton.MouseButton1Click:Connect(function()
     if not PointA or not PointB then
         ToggleButton.Text = "حدد المكانين أولاً!"
@@ -167,7 +198,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
 end)
 
--- حلقة الحركة بين المكانين
+-- حلقة الحركة للتجميع بين المكانين
 task.spawn(function()
     while true do
         task.wait(0.1)
