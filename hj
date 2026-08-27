@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Feature: Max Vehicle Speed Auto Farm
+-- // Features: Max Speed + Fuel Check + Compact Earnings Tracker
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -19,6 +19,10 @@ local PointB = nil
 local GasStationPoint = nil
 local IsRefueling = false
 
+-- متغيرات حساب الأرباح
+local InitialMoney = 0
+local CurrentEarned = 0
+
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RM8_UI"
@@ -31,7 +35,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 270)
+MainFrame.Size = UDim2.new(0, 260, 0, 300)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -53,62 +57,97 @@ TitleLabel.TextSize = 18
 local BtnPointA = Instance.new("TextButton")
 BtnPointA.Name = "BtnPointA"
 BtnPointA.Parent = MainFrame
-BtnPointA.Position = UDim2.new(0.08, 0, 0.14, 0)
-BtnPointA.Size = UDim2.new(0.84, 0, 0, 32)
+BtnPointA.Position = UDim2.new(0.08, 0, 0.13, 0)
+BtnPointA.Size = UDim2.new(0.84, 0, 0, 30)
 BtnPointA.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointA.Font = Enum.Font.SourceSansBold
 BtnPointA.Text = "حفظ المكان الأول: (غير محدد)"
 BtnPointA.TextColor3 = Color3.fromRGB(220, 220, 220)
-BtnPointA.TextSize = 14
+BtnPointA.TextSize = 13
 Instance.new("UICorner", BtnPointA).CornerRadius = UDim.new(0, 8)
 
 local BtnPointB = Instance.new("TextButton")
 BtnPointB.Name = "BtnPointB"
 BtnPointB.Parent = MainFrame
-BtnPointB.Position = UDim2.new(0.08, 0, 0.28, 0)
-BtnPointB.Size = UDim2.new(0.84, 0, 0, 32)
+BtnPointB.Position = UDim2.new(0.08, 0, 0.25, 0)
+BtnPointB.Size = UDim2.new(0.84, 0, 0, 30)
 BtnPointB.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 BtnPointB.Font = Enum.Font.SourceSansBold
 BtnPointB.Text = "حفظ المكان الثاني: (غير محدد)"
 BtnPointB.TextColor3 = Color3.fromRGB(220, 220, 220)
-BtnPointB.TextSize = 14
+BtnPointB.TextSize = 13
 Instance.new("UICorner", BtnPointB).CornerRadius = UDim.new(0, 8)
 
 local BtnGas = Instance.new("TextButton")
 BtnGas.Name = "BtnGas"
 BtnGas.Parent = MainFrame
-BtnGas.Position = UDim2.new(0.08, 0, 0.42, 0)
-BtnGas.Size = UDim2.new(0.84, 0, 0, 32)
+BtnGas.Position = UDim2.new(0.08, 0, 0.37, 0)
+BtnGas.Size = UDim2.new(0.84, 0, 0, 30)
 BtnGas.BackgroundColor3 = Color3.fromRGB(180, 120, 30)
 BtnGas.Font = Enum.Font.SourceSansBold
-BtnGas.Text = "حفظ موقع المحطة: (غير محدد)"
+BtnGas.Text = "حفظ موقع المحطة: (اختياري)"
 BtnGas.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnGas.TextSize = 13
+BtnGas.TextSize = 12
 Instance.new("UICorner", BtnGas).CornerRadius = UDim.new(0, 8)
 
 local BtnGoGas = Instance.new("TextButton")
 BtnGoGas.Name = "BtnGoGas"
 BtnGoGas.Parent = MainFrame
-BtnGoGas.Position = UDim2.new(0.08, 0, 0.56, 0)
-BtnGoGas.Size = UDim2.new(0.84, 0, 0, 32)
+BtnGoGas.Position = UDim2.new(0.08, 0, 0.49, 0)
+BtnGoGas.Size = UDim2.new(0.84, 0, 0, 30)
 BtnGoGas.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
 BtnGoGas.Font = Enum.Font.SourceSansBold
 BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
 BtnGoGas.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnGoGas.TextSize = 13
+BtnGoGas.TextSize = 12
 Instance.new("UICorner", BtnGoGas).CornerRadius = UDim.new(0, 8)
 
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MainFrame
-ToggleButton.Position = UDim2.new(0.08, 0, 0.72, 0)
-ToggleButton.Size = UDim2.new(0.84, 0, 0, 42)
+ToggleButton.Position = UDim2.new(0.08, 0, 0.62, 0)
+ToggleButton.Size = UDim2.new(0.84, 0, 0, 38)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Text = "بداية التجميع: (OFF)"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 18
+ToggleButton.TextSize = 16
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 8)
+
+-- عداد الأرباح المصغر تحت زر بداية التجميع
+local ProfitLabel = Instance.new("TextLabel")
+ProfitLabel.Name = "ProfitLabel"
+ProfitLabel.Parent = MainFrame
+ProfitLabel.BackgroundTransparency = 1
+ProfitLabel.Position = UDim2.new(0.08, 0, 0.77, 0)
+ProfitLabel.Size = UDim2.new(0.84, 0, 0, 55)
+ProfitLabel.Font = Enum.Font.SourceSansSemibold
+ProfitLabel.Text = "الأرباح: 0 $\nحالة البنزين: --%"
+ProfitLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+ProfitLabel.TextSize = 13
+ProfitLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+-- جلب الفلوس الحالية للاعب
+local function GetPlayerMoney()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        for _, v in ipairs(leaderstats:GetChildren()) do
+            if string.find(string.lower(v.Name), "cash") or string.find(string.lower(v.Name), "money") or v.Name == "فلوس" or v.Name == "الأرباح" then
+                return v.Value
+            end
+        end
+    end
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        for _, v in ipairs(playerGui:GetDescendants()) do
+            if v:IsA("TextLabel") and string.find(v.Text, "$") then
+                local num = tonumber(string.gsub(v.Text, "[^%d]", ""))
+                if num then return num end
+            end
+        end
+    end
+    return 0
+end
 
 local function GetVehicle()
     local success, model, seat = pcall(function()
@@ -123,6 +162,17 @@ local function GetVehicle()
     end)
     if success then return model, seat end
     return nil, nil
+end
+
+-- فحص كمية الوقود بالسيارة
+local function CheckFuelLevel(model)
+    if not model then return 100 end
+    for _, obj in ipairs(model:GetDescendants()) do
+        if (obj:IsA("NumberValue") or obj:IsA("IntValue")) and (string.find(string.lower(obj.Name), "fuel") or string.find(string.lower(obj.Name), "gas")) then
+            return obj.Value
+        end
+    end
+    return 100
 end
 
 local function SafeTeleport(model, targetCFrame)
@@ -165,23 +215,28 @@ BtnGas.MouseButton1Click:Connect(function()
     end
 end)
 
-BtnGoGas.MouseButton1Click:Connect(function()
+local function GoRefuel()
     local vehModel, seat = GetVehicle()
+    if not GasStationPoint then return end
+    if vehModel and seat then
+        IsRefueling = true
+        SafeTeleport(vehModel, GasStationPoint)
+        task.wait(5)
+        if PointA and AutoFarmEnabled then
+            SafeTeleport(vehModel, PointA)
+        end
+        IsRefueling = false
+    end
+end
+
+BtnGoGas.MouseButton1Click:Connect(function()
     if not GasStationPoint then
         BtnGoGas.Text = "احفظ موقع المحطة أولاً!"
         task.wait(1)
         BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
         return
     end
-    if vehModel and seat then
-        IsRefueling = true
-        SafeTeleport(vehModel, GasStationPoint)
-        task.wait(4)
-        if PointA and AutoFarmEnabled then
-            SafeTeleport(vehModel, PointA)
-        end
-        IsRefueling = false
-    end
+    GoRefuel()
 end)
 
 ToggleButton.MouseButton1Click:Connect(function()
@@ -195,9 +250,37 @@ ToggleButton.MouseButton1Click:Connect(function()
     AutoFarmEnabled = not AutoFarmEnabled
     ToggleButton.BackgroundColor3 = AutoFarmEnabled and Color3.fromRGB(40, 180, 50) or Color3.fromRGB(180, 40, 40)
     ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
+    
+    if AutoFarmEnabled then
+        InitialMoney = GetPlayerMoney()
+    end
 end)
 
--- حلقة الحركة للتجميع بأعلى سرعة مدعومة
+-- حلقة تحديث العداد وفحص البنزين تلقائياً
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local vehModel = GetVehicle()
+        local fuel = CheckFuelLevel(vehModel)
+        
+        if AutoFarmEnabled then
+            local nowMoney = GetPlayerMoney()
+            if nowMoney >= InitialMoney then
+                CurrentEarned = nowMoney - InitialMoney
+            end
+            ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nحالة البنزين: " .. math.floor(fuel) .. "%"
+            
+            -- فحص التعبئة تلقائياً إذا شارف البنزين على الانتهاء وكان موقع المحطة محفوظاً
+            if fuel <= 5 and GasStationPoint and not IsRefueling then
+                GoRefuel()
+            end
+        else
+            ProfitLabel.Text = "الأرباح: $0\nحالة البنزين: " .. math.floor(fuel) .. "%"
+        end
+    end
+end)
+
+-- حلقة الحركة للتجميع بأعلى سرعة
 task.spawn(function()
     while true do
         task.wait(0.1)
@@ -215,7 +298,6 @@ task.spawn(function()
                     local targetPos = PointB.Position
                     local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
-                    -- قراءة أقصى سرعة للمقعد تلقائياً أو رفعها لأقصى حد للموتر
                     local maxSpeed = math.max(currentSeat.MaxSpeed * 2.5, 400)
                     
                     if dist > 35 then
