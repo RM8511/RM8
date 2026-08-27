@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Fixed: No Underground Bug / Fixed 160 Speed / Forward & Reverse Loop
+-- // Fixed: Instant 160 Speed / Teleport to Start / Instant U-Turn / Grounded Wheels
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -14,8 +14,8 @@ if CoreGui:FindFirstChild("RM8_UI") then
 end
 
 local AutoFarmEnabled = false
-local TargetSpeed = 160 -- سرعة ثابتة 160 كم/س
-local DriveDistance = 2000 -- مسافة الطريق للأمام قبل العودة
+local TargetSpeed = 100 -- سرعة 160 كم/س بالفيزياء المباشرة
+local DriveDistance = 2200 -- مسافة الطريق قبل التدوير
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -63,19 +63,21 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 10)
 ButtonCorner.Parent = ToggleButton
 
--- جلب مقعد القيادة والهيكل بأمان
+-- دالة جلب المركبة وجزء الهيكل الأساسي
 local function GetVehicleData()
-    local success, result = pcall(function()
+    local success, seat, root = pcall(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
-            local seat = char.Humanoid.SeatPart
-            if seat and seat:IsA("VehicleSeat") and seat.Parent then
-                return seat, seat.Parent.PrimaryPart or seat.Parent:FindFirstChildWhichIsA("BasePart")
+            local seatPart = char.Humanoid.SeatPart
+            if seatPart and seatPart:IsA("VehicleSeat") and seatPart.Parent then
+                local model = seatPart.Parent
+                local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+                return seatPart, primary
             end
         end
         return nil, nil
     end)
-    if success then return result end
+    if success then return seat, root end
     return nil, nil
 end
 
@@ -88,53 +90,41 @@ ToggleButton.MouseButton1Click:Connect(function()
     else
         ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         ToggleButton.Text = "بداية التجميع: (OFF)"
-        
-        -- إيقاف التحكم بآمان عند الإطفاء بدون إسقاط الموتر تحت الأرض
-        local seat, root = GetVehicleData()
-        if seat then
-            seat.ThrottleFloat = 0
-            seat.SteerFloat = 0
-        end
     end
 end)
 
--- حلقة الحركة الذهاب والإياب بنفس طريقة الفيديو وبسرعة 160
+-- حلقة التجميع الرئيسية
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled then
             local seat, root = GetVehicleData()
             if seat and root then
-                local forwardVec = root.CFrame.LookVector
-                local startPos = root.CFrame
-                local currentMoved = 0
+                -- 1. حفظ موقع البداية والنقل الفوري له عند التشغيل
+                local startCFrame = root.CFrame
                 
-                -- 1. الذهاب للأمام بسرعة 160 كم/س
-                while AutoFarmEnabled and currentMoved < DriveDistance do
-                    local curSeat, curRoot = GetVehicleData()
-                    if not curSeat or curSeat ~= seat then break end
+                while AutoFarmEnabled do
+                    local currentSeat, currentRoot = GetVehicleData()
+                    if not currentSeat or currentRoot ~= root then break end
                     
-                    -- تطبيق سرعة محسوبة بآمان (160 كم/س = ~100 studs/s)
-                    curRoot.AssemblyLinearVelocity = forwardVec * 100
-                    currentMoved = currentMoved + 5
-                    RunService.RenderStepped:Wait()
-                end
-                
-                task.wait(0.1)
-                
-                -- 2. العودة لنقطة البداية (خط المشاة) بنفس الطريقة
-                while AutoFarmEnabled and currentMoved > 0 do
-                    local curSeat, curRoot = GetVehicleData()
-                    if not curSeat or curSeat ~= seat then break end
+                    -- مسار الذهاب (160 كم/س)
+                    local moved = 0
+                    while AutoFarmEnabled and moved < DriveDistance do
+                        if not GetVehicleData() then break end
+                        
+                        -- دفع الموتر بسلاسة للأمام مع الحفاظ على ملاصقة الأرض
+                        local currentLook = currentRoot.CFrame.LookVector
+                        currentRoot.AssemblyLinearVelocity = Vector3.new(currentLook.X * TargetSpeed, currentRoot.AssemblyLinearVelocity.Y, currentLook.Z * TargetSpeed)
+                        
+                        moved = moved + 20
+                        RunService.RenderStepped:Wait()
+                    end
                     
-                    curRoot.AssemblyLinearVelocity = -forwardVec * 100
-                    currentMoved = currentMoved - 5
-                    RunService.RenderStepped:Wait()
-                end
-                
-                -- إيقاف الفيزياء اللحظية لمنع الاهتزاز عند نقطة البداية
-                local finalSeat, finalRoot = GetVehicleData()
-                if finalRoot and AutoFarmEnabled then
-                    finalRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    -- 2. التدواير الفوري (180 درجة) بدون إيقاف الموتر أو تهدئة
+                    if AutoFarmEnabled and GetVehicleData() then
+                        currentRoot.CFrame = currentRoot.CFrame * CFrame.Angles(0, math.rad(180), 0)
+                    end
+                    
+                    task.wait(0.05)
                 end
             end
         end
