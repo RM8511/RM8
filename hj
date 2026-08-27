@@ -1,12 +1,13 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Version: Speed Limit 185
+-- // Feature: Auto Refuel Until Tank reaches 130
 -- // ================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("RM8_UI") then
@@ -18,17 +19,40 @@ local PointA = nil
 local PointB = nil
 local GasStationPoint = nil
 local IsRefueling = false
-local TargetMaxSpeed = 185 -- ضبط السرعة على 185
+local TargetMaxSpeed = 185
+local TargetFuelLevel = 130 -- الحد المطلوب للبنزين للعودة للتجميع
 
 -- متغيرات حساب الأرباح
 local InitialMoney = 0
 local CurrentEarned = 0
+
+-- 1. مانع الطرد (Anti-AFK)
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RM8_UI"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
+
+-- 2. زر إخفاء وإظهار القائمة (Minimize Button)
+local ToggleGuiBtn = Instance.new("TextButton")
+ToggleGuiBtn.Name = "ToggleGuiBtn"
+ToggleGuiBtn.Parent = ScreenGui
+ToggleGuiBtn.Position = UDim2.new(0.02, 0, 0.45, 0)
+ToggleGuiBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleGuiBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ToggleGuiBtn.Font = Enum.Font.SourceSansBold
+ToggleGuiBtn.Text = "RM8"
+ToggleGuiBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
+ToggleGuiBtn.TextSize = 14
+ToggleGuiBtn.Active = true
+ToggleGuiBtn.Draggable = true
+Instance.new("UICorner", ToggleGuiBtn).CornerRadius = UDim.new(1, 0)
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -43,6 +67,10 @@ MainFrame.Draggable = true
 local FrameCorner = Instance.new("UICorner")
 FrameCorner.CornerRadius = UDim.new(0, 10)
 FrameCorner.Parent = MainFrame
+
+ToggleGuiBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
@@ -187,6 +215,16 @@ local function SafeTeleport(model, targetCFrame)
     end
 end
 
+local function TriggerGasStationPrompts()
+    pcall(function()
+        for _, prompt in ipairs(workspace:GetDescendants()) do
+            if prompt:IsA("ProximityPrompt") and (string.find(string.lower(prompt.ActionText), "gas") or string.find(string.lower(prompt.ActionText), "refuel") or string.find(string.lower(prompt.ActionText), "fuel") or string.find(prompt.ActionText, "تعبئة") or string.find(prompt.ActionText, "بنزين")) then
+                fireproximityprompt(prompt)
+            end
+        end
+    end)
+end
+
 BtnPointA.MouseButton1Click:Connect(function()
     local vehModel, seat = GetVehicle()
     if vehModel and seat then
@@ -214,28 +252,51 @@ BtnGas.MouseButton1Click:Connect(function()
     end
 end)
 
+-- وظيفة التعبئة التلقائية حتى التانكي يوصل 130
 local function GoRefuel()
     local vehModel, seat = GetVehicle()
     if not GasStationPoint then return end
     if vehModel and seat then
         IsRefueling = true
         SafeTeleport(vehModel, GasStationPoint)
-        task.wait(5)
+        
+        BtnGoGas.Text = "جاري التعبئة حتى 130... ⛽"
+        
+        -- مخرج طوارئ أقصى حد للتعبئة لتجنب التعليق اللانهائي (60 ثانية)
+        local timeoutCounter = 0
+        
+        while IsRefueling do
+            task.wait(0.5)
+            timeoutCounter = timeoutCounter + 0.5
+            
+            TriggerGasStationPrompts()
+            local currentFuel = CheckFuelLevel(vehModel)
+            
+            -- عند الوصول لـ 130 أو أكثر، يرجع للتجميع فوراً
+            if currentFuel >= TargetFuelLevel or timeoutCounter >= 60 then
+                break
+            end
+        end
+        
+        BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+        
         if PointA and AutoFarmEnabled then
             SafeTeleport(vehModel, PointA)
+            task.wait(0.2)
         end
         IsRefueling = false
     end
 end
 
 BtnGoGas.MouseButton1Click:Connect(function()
+    if IsRefueling then return end
     if not GasStationPoint then
         BtnGoGas.Text = "احفظ موقع المحطة أولاً!"
         task.wait(1)
         BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
         return
     end
-    GoRefuel()
+    task.spawn(GoRefuel)
 end)
 
 ToggleButton.MouseButton1Click:Connect(function()
@@ -255,7 +316,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة تحديث العداد وفحص البنزين
+-- حلقة تحديث العداد وفحص البنزين تلقائياً
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -267,10 +328,15 @@ task.spawn(function()
             if nowMoney >= InitialMoney then
                 CurrentEarned = nowMoney - InitialMoney
             end
-            ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nحالة البنزين: " .. math.floor(fuel) .. "%"
+            
+            if IsRefueling then
+                ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nتعبئة البنزين: " .. math.floor(fuel) .. " / 130"
+            else
+                ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nحالة البنزين: " .. math.floor(fuel) .. "%"
+            end
             
             if fuel <= 5 and GasStationPoint and not IsRefueling then
-                GoRefuel()
+                task.spawn(GoRefuel)
             end
         else
             ProfitLabel.Text = "الأرباح: $0\nحالة البنزين: " .. math.floor(fuel) .. "%"
