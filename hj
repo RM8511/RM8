@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Features: Custom Points, 160 Speed, Auto Fuel Refill on "Empty"
+-- // Features: Standalone Auto Fuel Refill (Works anytime)
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -19,7 +19,7 @@ local PointB = nil
 local MoveSpeed = 160
 local IsRefueling = false
 
--- موقع محطة البنزين للتعبئة تلقائياً
+-- موقع محطة البنزين للتعبئة
 local GasStationCFrame = CFrame.new(-1200, 15, 800)
 
 -- إنشاء الواجهة (GUI)
@@ -125,23 +125,20 @@ local function SafeTeleport(model, targetCFrame)
     end
 end
 
--- فحص انخفاض البنزين أو توقف المحرك (فارغ)
-local function IsFuelEmpty(model, seat)
-    if not model or not seat then return false end
+-- فحص الشاشة لرصد البنزين "فارغ"
+local function CheckFuelUI()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return false end
     
-    -- 1. فحص متطلبات الوقود الحسابية داخل موديل السيارة
-    local fuelVal = model:FindFirstChild("Fuel", true) or model:FindFirstChild("Gas", true)
-    if fuelVal and (fuelVal:IsA("NumberValue") or fuelVal:IsA("IntValue")) then
-        if fuelVal.Value <= 1 then
-            return true
+    for _, guiElement in ipairs(playerGui:GetDescendants()) do
+        if guiElement:IsA("TextLabel") or guiElement:IsA("TextButton") then
+            if guiElement.Text and (string.find(guiElement.Text, "فارغ") or string.find(guiElement.Text, "0%%")) then
+                if guiElement.Visible then
+                    return true
+                end
+            end
         end
     end
-    
-    -- 2. فحص ما إذا كانت السيارة توقفت تماماً بسبب البنزين رغم ضغط دواسة البنزين
-    if seat.ThrottleFloat > 0 and seat.AssemblyLinearVelocity.Magnitude < 1 then
-        return true
-    end
-    
     return false
 end
 
@@ -190,34 +187,45 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة الحركة والتعبئة الرئيسية
+-- 1. حلقة فحص التعبئة المستقلة (تشتغل دائماً سواء حددت أزرار أو لا)
+task.spawn(function()
+    while task.wait(0.3) do
+        if not IsRefueling then
+            local vehModel, seat = GetVehicle()
+            if vehModel and seat then
+                local isFuelEmpty = CheckFuelUI() or (seat.ThrottleFloat > 0 and seat.AssemblyLinearVelocity.Magnitude < 1)
+                
+                if isFuelEmpty then
+                    IsRefueling = true
+                    
+                    -- الانتقال الفوري للمحطة
+                    SafeTeleport(vehModel, GasStationCFrame)
+                    task.wait(4.5) -- انتظر التعبئة فل
+                    
+                    -- إذا كان المكان الأول محدد والتجميع مفعّل، يرجع له تلقائياً
+                    if PointA and AutoFarmEnabled then
+                        SafeTeleport(vehModel, PointA)
+                    end
+                    
+                    IsRefueling = false
+                end
+            end
+        end
+    end
+end)
+
+-- 2. حلقة الحركة والتجميع بين المكانين
 task.spawn(function()
     while task.wait(0.1) do
-        if AutoFarmEnabled and PointA and PointB then
+        if AutoFarmEnabled and PointA and PointB and not IsRefueling then
             local vehModel, seat = GetVehicle()
             if vehModel and seat then
                 SafeTeleport(vehModel, PointA)
                 task.wait(0.1)
                 
-                while AutoFarmEnabled do
+                while AutoFarmEnabled and not IsRefueling do
                     local currentModel, currentSeat = GetVehicle()
                     if not currentModel or currentModel ~= vehModel then break end
-                    
-                    -- التحقق من حالة الوقود
-                    if IsFuelEmpty(currentModel, currentSeat) then
-                        IsRefueling = true
-                        ToggleButton.Text = "تعبئة البنزين... ⛽"
-                        
-                        -- الانتقال للمحطة للتعبئة
-                        SafeTeleport(currentModel, GasStationCFrame)
-                        task.wait(4.5) -- الانتظار حتى تعبئة التانكي فل
-                        
-                        -- العودة فوراً للمكان الأول
-                        SafeTeleport(currentModel, PointA)
-                        IsRefueling = false
-                        ToggleButton.Text = "بداية التجميع: (ON)"
-                        task.wait(0.2)
-                    end
                     
                     local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
@@ -225,16 +233,4 @@ task.spawn(function()
                     
                     if dist > 25 then
                         local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * (MoveSpeed * 1.15), currentSeat.AssemblyLinearVelocity.Y, dir.Z * (MoveSpeed * 1.15))
-                        currentModel:PivotTo(CFrame.new(currentPos, Vector3.new(targetPos.X, currentPos.Y, targetPos.Z)))
-                    else
-                        SafeTeleport(vehModel, PointA)
-                        task.wait(0.1)
-                    end
-                    
-                    RunService.RenderStepped:Wait()
-                end
-            end
-        end
-    end
-end)
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X
