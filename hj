@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Features: Waypoints, 160 Speed, Auto Refuel at Gas Station
+-- // Features: Custom Points, 160 Speed, Auto Fuel Refill on "Empty"
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -19,8 +19,8 @@ local PointB = nil
 local MoveSpeed = 160
 local IsRefueling = false
 
--- إحداثيات محطة البنزين القريبة تلقائياً (أو موقع التعبئة)
-local GasStationCFrame = CFrame.new(-1200, 15, 800) 
+-- موقع محطة البنزين للتعبئة تلقائياً
+local GasStationCFrame = CFrame.new(-1200, 15, 800)
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -125,20 +125,20 @@ local function SafeTeleport(model, targetCFrame)
     end
 end
 
--- فحص هل البنزين خلص أو السيارة طفت
-local function CheckNeedFuel(model, seat)
-    if not model then return false end
+-- فحص انخفاض البنزين أو توقف المحرك (فارغ)
+local function IsFuelEmpty(model, seat)
+    if not model or not seat then return false end
     
-    -- البحث عن قيمة البنزين في السيارة
-    local fuelValue = model:FindFirstChild("Fuel", true) or model:FindFirstChild("Gas", true) or model:FindFirstChild("Gasoline", true)
-    if fuelValue and (fuelValue:IsA("NumberValue") or fuelValue:IsA("IntValue")) then
-        if fuelValue.Value <= 5 then
+    -- 1. فحص متطلبات الوقود الحسابية داخل موديل السيارة
+    local fuelVal = model:FindFirstChild("Fuel", true) or model:FindFirstChild("Gas", true)
+    if fuelVal and (fuelVal:IsA("NumberValue") or fuelVal:IsA("IntValue")) then
+        if fuelVal.Value <= 1 then
             return true
         end
     end
     
-    -- فحص ما إذا كانت السيارة طافية ولا تتحرك عند إعطاء بنزين
-    if seat and seat.ThrottleFloat > 0 and seat.AssemblyLinearVelocity.Magnitude < 2 then
+    -- 2. فحص ما إذا كانت السيارة توقفت تماماً بسبب البنزين رغم ضغط دواسة البنزين
+    if seat.ThrottleFloat > 0 and seat.AssemblyLinearVelocity.Magnitude < 1 then
         return true
     end
     
@@ -190,7 +190,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة التجميع مع التعبئة التلقائية
+-- حلقة الحركة والتعبئة الرئيسية
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled and PointA and PointB then
@@ -203,16 +203,16 @@ task.spawn(function()
                     local currentModel, currentSeat = GetVehicle()
                     if not currentModel or currentModel ~= vehModel then break end
                     
-                    -- التحقق من البنزين
-                    if CheckNeedFuel(currentModel, currentSeat) then
+                    -- التحقق من حالة الوقود
+                    if IsFuelEmpty(currentModel, currentSeat) then
                         IsRefueling = true
-                        ToggleButton.Text = "جاري التعبئة... ⛽"
+                        ToggleButton.Text = "تعبئة البنزين... ⛽"
                         
-                        -- الانتقال للمحطة
+                        -- الانتقال للمحطة للتعبئة
                         SafeTeleport(currentModel, GasStationCFrame)
-                        task.wait(5) -- وقت التعبئة فل
+                        task.wait(4.5) -- الانتظار حتى تعبئة التانكي فل
                         
-                        -- العودة للمكان الأول
+                        -- العودة فوراً للمكان الأول
                         SafeTeleport(currentModel, PointA)
                         IsRefueling = false
                         ToggleButton.Text = "بداية التجميع: (ON)"
