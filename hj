@@ -1,0 +1,45 @@
+-- // RM8 - Straight Road Auto Farm (No Errors)
+-- // تجميع تلقائي خط مستقيم بدون ساهر
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local AutoFarm = true
+local Distance = 2000 -- المسافة المطلوبة للقيادة قبل إعادة التجميع
+local DrivingSpeed = 120 -- السرعة الآمنة لمنع الـ Lag أو التعليق
+
+local function getVehicle()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local seat = LocalPlayer.Character.Humanoid.SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            return seat.Parent
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if AutoFarm then
+            local veh = getVehicle()
+            if veh and veh.PrimaryPart then
+                local root = veh.PrimaryPart
+                local startCFrame = root.CFrame
+                
+                -- القيادة للأمام في خط مستقيم
+                for i = 1, Distance, 10 do
+                    if not AutoFarm or not getVehicle() then break end
+                    root.CFrame = root.CFrame + (root.CFrame.LookVector * 10)
+                    root.AssemblyLinearVelocity = root.CFrame.LookVector * DrivingSpeed
+                    task.wait(0.05)
+                end
+                
+                -- العودة لنقطة البداية لتكرار العملية
+                task.wait(0.5)
+                if veh and veh.PrimaryPart then
+                    veh:SetPrimaryPartCFrame(startCFrame)
+                end
+            end
+        end
+    end
+end)
