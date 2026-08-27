@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Version: Compact UI & Speed Limit 210
+-- // Version: Speed Limit 185
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -18,13 +18,13 @@ local PointA = nil
 local PointB = nil
 local GasStationPoint = nil
 local IsRefueling = false
-local TargetMaxSpeed = 210 -- تحديد السرعة القصوى لـ 210
+local TargetMaxSpeed = 185 -- ضبط السرعة على 185
 
 -- متغيرات حساب الأرباح
 local InitialMoney = 0
 local CurrentEarned = 0
 
--- إنشاء الواجهة (GUI) - حجم مصغر
+-- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RM8_UI"
 ScreenGui.Parent = CoreGui
@@ -36,7 +36,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.38, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 220, 0, 235) -- قائمة أصغر وأخف
+MainFrame.Size = UDim2.new(0, 220, 0, 235)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -51,7 +51,7 @@ TitleLabel.BackgroundTransparency = 1
 TitleLabel.Position = UDim2.new(0, 0, 0, 4)
 TitleLabel.Size = UDim2.new(1, 0, 0, 20)
 TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "حقوق: RM8 (210 Max)"
+TitleLabel.Text = "حقوق: RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 15
 
@@ -115,7 +115,7 @@ ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextSize = 14
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 6)
 
--- عداد الأرباح والبنزين مصغر تحت الزر
+-- عداد الأرباح والبنزين
 local ProfitLabel = Instance.new("TextLabel")
 ProfitLabel.Name = "ProfitLabel"
 ProfitLabel.Parent = MainFrame
@@ -278,7 +278,7 @@ task.spawn(function()
     end
 end)
 
--- حلقة الحركة للتجميع مع تحديد السرعة بـ 210
+-- حلقة الحركة للتجميع بسررعة 185
 task.spawn(function()
     while true do
         task.wait(0.1)
