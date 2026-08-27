@@ -1,13 +1,11 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Feature: Full Auto Refuel (Prompt + E-Key + Touch) until 130
+-- // Fixed & Optimized for Mobile Executors
 -- // ================================================
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 
@@ -216,37 +214,6 @@ local function SafeTeleport(model, targetCFrame)
     end
 end
 
--- وظيفة ضغط أزرار التعبئة بجميع الطرق الممكنة (Prompts + Keys + Touch)
-local function ForceRefuelPress()
-    pcall(function()
-        -- 1. تفعيل أي ProximityPrompt قريب باللعبة
-        for _, prompt in ipairs(workspace:GetDescendants()) do
-            if prompt:IsA("ProximityPrompt") then
-                fireproximityprompt(prompt)
-            end
-        end
-        -- 2. محاكاة ضغط زر E للكيبورد
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.05)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-        -- 3. تفعيل الأزرار التي تظهر على الشاشة (GUI) الخاصة بالتعبئة إن وجدت
-        local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if pGui then
-            for _, btn in ipairs(pGui:GetDescendants()) do
-                if btn:IsA("TextButton") or btn:IsA("ImageButton") then
-                    local txt = string.lower(btn.Name .. (btn:IsA("TextButton") and btn.Text or ""))
-                    if string.find(txt, "gas") or string.find(txt, "refuel") or string.find(txt, "fuel") or string.find(txt, "تعبئة") or string.find(txt, "بنزين") or string.find(txt, "شراء") then
-                        for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                            conn:Fire()
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
 BtnPointA.MouseButton1Click:Connect(function()
     local vehModel, seat = GetVehicle()
     if vehModel and seat then
@@ -274,7 +241,6 @@ BtnGas.MouseButton1Click:Connect(function()
     end
 end)
 
--- حلقة التعبئة الذكية حتى يوصل التانكي 130
 local function GoRefuel()
     local vehModel, seat = GetVehicle()
     if not GasStationPoint then return end
@@ -284,19 +250,15 @@ local function GoRefuel()
         
         BtnGoGas.Text = "جاري التعبئة حتى 130... ⛽"
         
-        local timeoutCounter = 0
-        
+        local timer = 0
         while IsRefueling do
-            task.wait(0.3)
-            timeoutCounter = timeoutCounter + 0.3
-            
-            -- ضغط زر التعبئة بشكل مستمر
-            ForceRefuelPress()
+            task.wait(0.5)
+            timer = timer + 0.5
             
             local currentFuel = CheckFuelLevel(vehModel)
             
-            -- الوصول إلى 130 أو أكثر يوقف التعبئة فوراً ويرجع للتجميع
-            if currentFuel >= TargetFuelLevel or timeoutCounter >= 90 then
+            -- يرجع للتجميع فوراً عندما يصل البنزين إلى 130 أو بعد 60 ثانية كحد أقصى
+            if currentFuel >= TargetFuelLevel or timer >= 60 then
                 break
             end
         end
@@ -367,7 +329,7 @@ task.spawn(function()
     end
 end)
 
--- حلقة الحركة للتجميع بسررعة 185
+-- حلقة الحركة للتجميع بسرعة 185
 task.spawn(function()
     while true do
         task.wait(0.1)
