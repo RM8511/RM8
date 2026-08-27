@@ -1,6 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
+-- // GitHub Raw File Script
 -- // Features: Smooth Straight Driving, Loop Teleport, Auto Farm
 -- // Protected against nil errors & mobile lag
 -- // ================================================
