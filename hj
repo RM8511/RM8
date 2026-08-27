@@ -1,7 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Fixed: Direct Engine Check & Auto Fuel Refill
+-- // Fixed: Teleport Glitch & Station Default Bug
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local AutoFarmEnabled = false
 local PointA = nil
 local PointB = nil
 local GasStationPoint = nil
-local MoveSpeed = 160
+local MoveSpeed = 150
 local IsRefueling = false
 
 -- إنشاء الواجهة (GUI)
@@ -118,36 +118,13 @@ local function SafeTeleport(model, targetCFrame)
     if model and targetCFrame then
         for _, part in ipairs(model:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
             end
         end
-        model:PivotTo(targetCFrame)
+        model:PivotTo(targetCFrame + Vector3.new(0, 2, 0))
+        task.wait(0.1)
     end
-end
-
--- فحص مباشر لخصائص السيارة لضمان رصد طفية البنزين
-local function IsVehicleOutOfFuel(model, seat)
-    if not model or not seat then return false end
-    
-    -- 1. فحص قيمة البنزين من قيم السيارة الداخلية إن وجدت
-    for _, obj in ipairs(model:GetDescendants()) do
-        if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-            local n = string.lower(obj.Name)
-            if string.find(n, "fuel") or string.find(n, "gas") then
-                if obj.Value <= 1 then
-                    return true
-                end
-            end
-        end
-    end
-    
-    -- 2. فحص سرعة السيارة المباشرة (إذا السرعة 0 بالرغم من محاولة الحركة)
-    if seat.AssemblyLinearVelocity.Magnitude < 0.8 then
-        return true
-    end
-    
-    return false
 end
 
 BtnPointA.MouseButton1Click:Connect(function()
@@ -190,60 +167,33 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
 end)
 
--- حلقة التعبئة التلقائية المباشرة
+-- حلقة الحركة بين المكانين
 task.spawn(function()
-    while task.wait(0.2) do
-        if not IsRefueling then
-            local vehModel, seat = GetVehicle()
-            if vehModel and seat then
-                if IsVehicleOutOfFuel(vehModel, seat) then
-                    IsRefueling = true
-                    ToggleButton.Text = "تعبئة البنزين... ⛽"
-                    
-                    local targetGas = GasStationPoint or CFrame.new(-1200, 15, 800)
-                    SafeTeleport(vehModel, targetGas)
-                    
-                    task.wait(5) -- وقت التعبئة بالمحطة
-                    
-                    if PointA and AutoFarmEnabled then
-                        SafeTeleport(vehModel, PointA)
-                    end
-                    
-                    IsRefueling = false
-                    ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
-                end
-            end
-        end
-    end
-end)
-
--- حلقة التجميع
-task.spawn(function()
-    while task.wait(0.1) do
+    while true do
+        task.wait(0.1)
         if AutoFarmEnabled and PointA and PointB and not IsRefueling then
             local vehModel, seat = GetVehicle()
             if vehModel and seat then
                 SafeTeleport(vehModel, PointA)
-                task.wait(0.1)
+                task.wait(0.2)
                 
                 while AutoFarmEnabled and not IsRefueling do
                     local currentModel, currentSeat = GetVehicle()
-                    if not currentModel or currentModel ~= vehModel then break end
+                    if not currentModel or currentSeat ~= seat then break end
                     
                     local currentPos = currentSeat.Position
                     local targetPos = PointB.Position
                     local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
                     
-                    if dist > 25 then
+                    if dist > 20 then
                         local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
-                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * (MoveSpeed * 1.15), currentSeat.AssemblyLinearVelocity.Y, dir.Z * (MoveSpeed * 1.15))
-                        currentModel:PivotTo(CFrame.new(currentPos, Vector3.new(targetPos.X, currentPos.Y, targetPos.Z)))
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * MoveSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * MoveSpeed)
                     else
                         SafeTeleport(vehModel, PointA)
-                        task.wait(0.1)
+                        task.wait(0.2)
                     end
                     
-                    RunService.RenderStepped:Wait()
+                    task.wait(0.03)
                 end
             end
         end
