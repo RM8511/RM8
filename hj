@@ -1,8 +1,7 @@
 -- // ================================================
 -- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
--- // Features: Smooth Forward & Backward Drive to Saved Point
--- // Protected against nil errors & mobile lag
+-- // Fixed: No Underground Bug / Fixed 160 Speed / Forward & Reverse Loop
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -15,8 +14,8 @@ if CoreGui:FindFirstChild("RM8_UI") then
 end
 
 local AutoFarmEnabled = false
-local DrivingSpeed = 140 -- سرعة الذهاب والإياب
-local RoadLength = 2200 -- طول الشارع المستقيم
+local TargetSpeed = 160 -- سرعة ثابتة 160 كم/س
+local DriveDistance = 2000 -- مسافة الطريق للأمام قبل العودة
 
 -- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
@@ -64,18 +63,20 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 10)
 ButtonCorner.Parent = ToggleButton
 
-local function GetVehicle()
+-- جلب مقعد القيادة والهيكل بأمان
+local function GetVehicleData()
     local success, result = pcall(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             local seat = char.Humanoid.SeatPart
             if seat and seat:IsA("VehicleSeat") and seat.Parent then
-                return seat.Parent
+                return seat, seat.Parent.PrimaryPart or seat.Parent:FindFirstChildWhichIsA("BasePart")
             end
         end
-        return nil
+        return nil, nil
     end)
-    return success and result or nil
+    if success then return result end
+    return nil, nil
 end
 
 ToggleButton.MouseButton1Click:Connect(function()
@@ -87,45 +88,53 @@ ToggleButton.MouseButton1Click:Connect(function()
     else
         ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         ToggleButton.Text = "بداية التجميع: (OFF)"
+        
+        -- إيقاف التحكم بآمان عند الإطفاء بدون إسقاط الموتر تحت الأرض
+        local seat, root = GetVehicleData()
+        if seat then
+            seat.ThrottleFloat = 0
+            seat.SteerFloat = 0
+        end
     end
 end)
 
--- حلقة التجميع: قيادة للأمام ثم العودة للخلف (ريوس)
+-- حلقة الحركة الذهاب والإياب بنفس طريقة الفيديو وبسرعة 160
 task.spawn(function()
     while task.wait(0.1) do
         if AutoFarmEnabled then
-            local veh = GetVehicle()
-            if veh then
-                local root = veh.PrimaryPart or veh:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    local forwardVec = root.CFrame.LookVector
-                    local distanceTraveled = 0
+            local seat, root = GetVehicleData()
+            if seat and root then
+                local forwardVec = root.CFrame.LookVector
+                local startPos = root.CFrame
+                local currentMoved = 0
+                
+                -- 1. الذهاب للأمام بسرعة 160 كم/س
+                while AutoFarmEnabled and currentMoved < DriveDistance do
+                    local curSeat, curRoot = GetVehicleData()
+                    if not curSeat or curSeat ~= seat then break end
                     
-                    -- 1. الذهاب للأمام لين نهاية الطريق
-                    while AutoFarmEnabled and distanceTraveled < RoadLength do
-                        local currentVeh = GetVehicle()
-                        if not currentVeh or currentVeh ~= veh then break end
-                        
-                        root.AssemblyLinearVelocity = forwardVec * DrivingSpeed
-                        distanceTraveled = distanceTraveled + (DrivingSpeed * 0.03)
-                        RunService.RenderStepped:Wait()
-                    end
+                    -- تطبيق سرعة محسوبة بآمان (160 كم/س = ~100 studs/s)
+                    curRoot.AssemblyLinearVelocity = forwardVec * 100
+                    currentMoved = currentMoved + 5
+                    RunService.RenderStepped:Wait()
+                end
+                
+                task.wait(0.1)
+                
+                -- 2. العودة لنقطة البداية (خط المشاة) بنفس الطريقة
+                while AutoFarmEnabled and currentMoved > 0 do
+                    local curSeat, curRoot = GetVehicleData()
+                    if not curSeat or curSeat ~= seat then break end
                     
-                    task.wait(0.2)
-                    
-                    -- 2. الرجوع للخلف (ريوس) لنفس خط البداية
-                    while AutoFarmEnabled and distanceTraveled > 0 do
-                        local currentVeh = GetVehicle()
-                        if not currentVeh or currentVeh ~= veh then break end
-                        
-                        root.AssemblyLinearVelocity = -forwardVec * DrivingSpeed
-                        distanceTraveled = distanceTraveled - (DrivingSpeed * 0.03)
-                        RunService.RenderStepped:Wait()
-                    end
-                    
-                    if GetVehicle() == veh then
-                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    end
+                    curRoot.AssemblyLinearVelocity = -forwardVec * 100
+                    currentMoved = currentMoved - 5
+                    RunService.RenderStepped:Wait()
+                end
+                
+                -- إيقاف الفيزياء اللحظية لمنع الاهتزاز عند نقطة البداية
+                local finalSeat, finalRoot = GetVehicleData()
+                if finalRoot and AutoFarmEnabled then
+                    finalRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
             end
         end
