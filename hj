@@ -1,23 +1,29 @@
 -- // ================================================
--- // Script: Driving Simulator Auto Farm (Point A / Point B)
+-- // Script: Driving Simulator Auto Farm UI
 -- // Developer Rights: RM8
+-- // Fixed & Optimized for Mobile Executors
 -- // ================================================
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local VirtualUser = game:GetService("VirtualUser")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("RM8_DriveFarm_UI") then
-    CoreGui.RM8_DriveFarm_UI:Destroy()
+if CoreGui:FindFirstChild("RM8_UI") then
+    CoreGui.RM8_UI:Destroy()
 end
 
-local DriveFarmEnabled = false
+local AutoFarmEnabled = false
 local PointA = nil
 local PointB = nil
-local CurrentTarget = nil
-local TargetSpeed = 185
+local GasStationPoint = nil
+local IsRefueling = false
+local TargetMaxSpeed = 185
+local TargetFuelLevel = 130
+
+-- متغيرات حساب الأرباح
+local InitialMoney = 0
+local CurrentEarned = 0
 
 -- 1. مانع الطرد (Anti-AFK)
 LocalPlayer.Idled:Connect(function()
@@ -26,19 +32,19 @@ LocalPlayer.Idled:Connect(function()
     VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
--- إنشاء الواجهة الرسمية (GUI)
+-- إنشاء الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RM8_DriveFarm_UI"
+ScreenGui.Name = "RM8_UI"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- زر RM8 لإظهار وإخفاء القائمة
+-- 2. زر إخفاء وإظهار القائمة (Minimize Button)
 local ToggleGuiBtn = Instance.new("TextButton")
 ToggleGuiBtn.Name = "ToggleGuiBtn"
 ToggleGuiBtn.Parent = ScreenGui
 ToggleGuiBtn.Position = UDim2.new(0.02, 0, 0.45, 0)
 ToggleGuiBtn.Size = UDim2.new(0, 45, 0, 45)
-ToggleGuiBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+ToggleGuiBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 ToggleGuiBtn.Font = Enum.Font.SourceSansBold
 ToggleGuiBtn.Text = "RM8"
 ToggleGuiBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
@@ -47,87 +53,129 @@ ToggleGuiBtn.Active = true
 ToggleGuiBtn.Draggable = true
 Instance.new("UICorner", ToggleGuiBtn).CornerRadius = UDim.new(1, 0)
 
--- الإطار الرئيسي
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 24, 35)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.35, 0, 0.2, 0)
-MainFrame.Size = UDim2.new(0, 240, 0, 240)
+MainFrame.Position = UDim2.new(0.38, 0, 0.15, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 235)
 MainFrame.Active = true
 MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 10)
+FrameCorner.Parent = MainFrame
 
 ToggleGuiBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- عنوان الواجهة
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 0, 0, 10)
+TitleLabel.Position = UDim2.new(0, 0, 0, 4)
 TitleLabel.Size = UDim2.new(1, 0, 0, 20)
 TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "سكربت التجميع السريع | RM8"
+TitleLabel.Text = "حقوق: RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 14
+TitleLabel.TextSize = 15
 
--- زر حفظ النقاط
-local SavePointsBtn = Instance.new("TextButton")
-SavePointsBtn.Name = "SavePointsBtn"
-SavePointsBtn.Parent = MainFrame
-SavePointsBtn.Position = UDim2.new(0.08, 0, 0.18, 0)
-SavePointsBtn.Size = UDim2.new(0.84, 0, 0, 34)
-SavePointsBtn.BackgroundColor3 = Color3.fromRGB(40, 90, 160)
-SavePointsBtn.Font = Enum.Font.SourceSansBold
-SavePointsBtn.Text = "1. حفظ النقاط (A / B)"
-SavePointsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SavePointsBtn.TextSize = 13
-Instance.new("UICorner", SavePointsBtn).CornerRadius = UDim.new(0, 6)
+local BtnPointA = Instance.new("TextButton")
+BtnPointA.Name = "BtnPointA"
+BtnPointA.Parent = MainFrame
+BtnPointA.Position = UDim2.new(0.06, 0, 0.12, 0)
+BtnPointA.Size = UDim2.new(0.88, 0, 0, 26)
+BtnPointA.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+BtnPointA.Font = Enum.Font.SourceSansBold
+BtnPointA.Text = "حفظ المكان الأول: (غير محدد)"
+BtnPointA.TextColor3 = Color3.fromRGB(220, 220, 220)
+BtnPointA.TextSize = 12
+Instance.new("UICorner", BtnPointA).CornerRadius = UDim.new(0, 6)
 
--- زر مسح النقاط
-local ClearPointsBtn = Instance.new("TextButton")
-ClearPointsBtn.Name = "ClearPointsBtn"
-ClearPointsBtn.Parent = MainFrame
-ClearPointsBtn.Position = UDim2.new(0.08, 0, 0.35, 0)
-ClearPointsBtn.Size = UDim2.new(0.84, 0, 0, 34)
-ClearPointsBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
-ClearPointsBtn.Font = Enum.Font.SourceSansBold
-ClearPointsBtn.Text = "2. مسح النقاط المحفوظة"
-ClearPointsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ClearPointsBtn.TextSize = 13
-Instance.new("UICorner", ClearPointsBtn).CornerRadius = UDim.new(0, 6)
+local BtnPointB = Instance.new("TextButton")
+BtnPointB.Name = "BtnPointB"
+BtnPointB.Parent = MainFrame
+BtnPointB.Position = UDim2.new(0.06, 0, 0.25, 0)
+BtnPointB.Size = UDim2.new(0.88, 0, 0, 26)
+BtnPointB.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+BtnPointB.Font = Enum.Font.SourceSansBold
+BtnPointB.Text = "حفظ المكان الثاني: (غير محدد)"
+BtnPointB.TextColor3 = Color3.fromRGB(220, 220, 220)
+BtnPointB.TextSize = 12
+Instance.new("UICorner", BtnPointB).CornerRadius = UDim.new(0, 6)
 
--- زر التشغيل الإيقاف
-local DriveBtn = Instance.new("TextButton")
-DriveBtn.Name = "DriveBtn"
-DriveBtn.Parent = MainFrame
-DriveBtn.Position = UDim2.new(0.08, 0, 0.52, 0)
-DriveBtn.Size = UDim2.new(0.84, 0, 0, 36)
-DriveBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-DriveBtn.Font = Enum.Font.SourceSansBold
-DriveBtn.Text = "تشغيل التجميع (185): OFF"
-DriveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DriveBtn.TextSize = 13
-Instance.new("UICorner", DriveBtn).CornerRadius = UDim.new(0, 6)
+local BtnGas = Instance.new("TextButton")
+BtnGas.Name = "BtnGas"
+BtnGas.Parent = MainFrame
+BtnGas.Position = UDim2.new(0.06, 0, 0.38, 0)
+BtnGas.Size = UDim2.new(0.88, 0, 0, 26)
+BtnGas.BackgroundColor3 = Color3.fromRGB(180, 120, 30)
+BtnGas.Font = Enum.Font.SourceSansBold
+BtnGas.Text = "حفظ موقع المحطة: (اختياري)"
+BtnGas.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnGas.TextSize = 11
+Instance.new("UICorner", BtnGas).CornerRadius = UDim.new(0, 6)
 
--- نص عرض الحالة
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "StatusLabel"
-StatusLabel.Parent = MainFrame
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0.08, 0, 0.70, 0)
-StatusLabel.Size = UDim2.new(0.84, 0, 0, 60)
-StatusLabel.Font = Enum.Font.SourceSansSemibold
-StatusLabel.Text = "الحالة: احفظ النقطة الأولى والثانية..."
-StatusLabel.TextColor3 = Color3.fromRGB(200, 210, 225)
-StatusLabel.TextSize = 12
-StatusLabel.TextWrapped = true
+local BtnGoGas = Instance.new("TextButton")
+BtnGoGas.Name = "BtnGoGas"
+BtnGoGas.Parent = MainFrame
+BtnGoGas.Position = UDim2.new(0.06, 0, 0.51, 0)
+BtnGoGas.Size = UDim2.new(0.88, 0, 0, 26)
+BtnGoGas.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+BtnGoGas.Font = Enum.Font.SourceSansBold
+BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+BtnGoGas.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnGoGas.TextSize = 11
+Instance.new("UICorner", BtnGoGas).CornerRadius = UDim.new(0, 6)
 
--- الحصول على المركبة
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = MainFrame
+ToggleButton.Position = UDim2.new(0.06, 0, 0.64, 0)
+ToggleButton.Size = UDim2.new(0.88, 0, 0, 32)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "بداية التجميع: (OFF)"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 14
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 6)
+
+-- عداد الأرباح والبنزين
+local ProfitLabel = Instance.new("TextLabel")
+ProfitLabel.Name = "ProfitLabel"
+ProfitLabel.Parent = MainFrame
+ProfitLabel.BackgroundTransparency = 1
+ProfitLabel.Position = UDim2.new(0.06, 0, 0.80, 0)
+ProfitLabel.Size = UDim2.new(0.88, 0, 0, 40)
+ProfitLabel.Font = Enum.Font.SourceSansSemibold
+ProfitLabel.Text = "الأرباح: 0 $\nحالة البنزين: --%"
+ProfitLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+ProfitLabel.TextSize = 11
+ProfitLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+local function GetPlayerMoney()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        for _, v in ipairs(leaderstats:GetChildren()) do
+            if string.find(string.lower(v.Name), "cash") or string.find(string.lower(v.Name), "money") or v.Name == "فلوس" or v.Name == "الأرباح" then
+                return v.Value
+            end
+        end
+    end
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        for _, v in ipairs(playerGui:GetDescendants()) do
+            if v:IsA("TextLabel") and string.find(v.Text, "$") then
+                local num = tonumber(string.gsub(v.Text, "[^%d]", ""))
+                if num then return num end
+            end
+        end
+    end
+    return 0
+end
+
 local function GetVehicle()
     local success, model, seat = pcall(function()
         local char = LocalPlayer.Character
@@ -143,63 +191,173 @@ local function GetVehicle()
     return nil, nil
 end
 
--- حفظ ومسح النقاط
-SavePointsBtn.MouseButton1Click:Connect(function()
-    local _, seat = GetVehicle()
-    if not seat then
-        StatusLabel.Text = "خطأ: يجب أن تكون راكباً للسيارة لحفظ النقاط!"
-        return
+local function CheckFuelLevel(model)
+    if not model then return 100 end
+    for _, obj in ipairs(model:GetDescendants()) do
+        if (obj:IsA("NumberValue") or obj:IsA("IntValue")) and (string.find(string.lower(obj.Name), "fuel") or string.find(string.lower(obj.Name), "gas")) then
+            return obj.Value
+        end
     end
-    
-    if not PointA then
-        PointA = seat.Position
-        StatusLabel.Text = "تم حفظ النقطة الأولى (A) ✓\nتحرك للموقع الثاني واضغط حفظ مجدداً."
-    elseif not PointB then
-        PointB = seat.Position
-        CurrentTarget = PointB
-        StatusLabel.Text = "تم حفظ النقطتين (A) و (B) بنجاح ✓\nيمكنك الآن تشغيل التجميع!"
-    else
-        StatusLabel.Text = "النقاط محفوظة بالفعل! استخدم زر المسح لإعادتها."
+    return 100
+end
+
+local function SafeTeleport(model, targetCFrame)
+    if model and targetCFrame then
+        for _, part in ipairs(model:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end
+        end
+        model:PivotTo(targetCFrame + Vector3.new(0, 2, 0))
+        task.wait(0.1)
+    end
+end
+
+BtnPointA.MouseButton1Click:Connect(function()
+    local vehModel, seat = GetVehicle()
+    if vehModel and seat then
+        PointA = seat.CFrame
+        BtnPointA.Text = "تم حفظ المكان الأول ✓"
+        BtnPointA.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
     end
 end)
 
-ClearPointsBtn.MouseButton1Click:Connect(function()
-    PointA = nil
-    PointB = nil
-    CurrentTarget = nil
-    DriveFarmEnabled = false
-    DriveBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    DriveBtn.Text = "تشغيل التجميع (185): OFF"
-    StatusLabel.Text = "تم مسح جميع النقاط المحفوظة."
-end)
-
--- التفعيل والإيقاف
-DriveBtn.MouseButton1Click:Connect(function()
-    if not PointA or not PointB then
-        StatusLabel.Text = "تنبيه: احفظ النقطتين (A) و (B) أولاً!"
-        return
+BtnPointB.MouseButton1Click:Connect(function()
+    local vehModel, seat = GetVehicle()
+    if vehModel and seat then
+        PointB = seat.CFrame
+        BtnPointB.Text = "تم حفظ المكان الثاني ✓"
+        BtnPointB.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
     end
-    
-    DriveFarmEnabled = not DriveFarmEnabled
-    DriveBtn.BackgroundColor3 = DriveFarmEnabled and Color3.fromRGB(40, 180, 50) or Color3.fromRGB(180, 40, 40)
-    DriveBtn.Text = DriveFarmEnabled and "تشغيل التجميع (185): ON" or "تشغيل التجميع (185): OFF"
-    StatusLabel.Text = DriveFarmEnabled and "التجميع السريع شغال بين النقطتين ⚡" or "التجميع متوقف"
 end)
 
--- حلقة التحرك المباشر والسريع
-RunService.Heartbeat:Connect(function()
-    if DriveFarmEnabled and PointA and PointB then
-        local vehModel, seat = GetVehicle()
-        if vehModel and seat then
-            local currentPos = seat.Position
-            local dist = (Vector3.new(currentPos.X, 0, currentPos.Z) - Vector3.new(CurrentTarget.X, 0, CurrentTarget.Z)).Magnitude
+BtnGas.MouseButton1Click:Connect(function()
+    local vehModel, seat = GetVehicle()
+    if vehModel and seat then
+        GasStationPoint = seat.CFrame
+        BtnGas.Text = "تم حفظ موقع المحطة ✓"
+        BtnGas.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+    end
+end)
+
+local function GoRefuel()
+    local vehModel, seat = GetVehicle()
+    if not GasStationPoint then return end
+    if vehModel and seat then
+        IsRefueling = true
+        SafeTeleport(vehModel, GasStationPoint)
+        
+        BtnGoGas.Text = "جاري التعبئة حتى 130... ⛽"
+        
+        local timer = 0
+        while IsRefueling do
+            task.wait(0.5)
+            timer = timer + 0.5
             
-            if dist < 15 then
-                CurrentTarget = (CurrentTarget == PointA) and PointB or PointA
+            local currentFuel = CheckFuelLevel(vehModel)
+            
+            -- يرجع للتجميع فوراً عندما يصل البنزين إلى 130 أو بعد 60 ثانية كحد أقصى
+            if currentFuel >= TargetFuelLevel or timer >= 60 then
+                break
+            end
+        end
+        
+        BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+        
+        if PointA and AutoFarmEnabled then
+            SafeTeleport(vehModel, PointA)
+            task.wait(0.2)
+        end
+        IsRefueling = false
+    end
+end
+
+BtnGoGas.MouseButton1Click:Connect(function()
+    if IsRefueling then return end
+    if not GasStationPoint then
+        BtnGoGas.Text = "احفظ موقع المحطة أولاً!"
+        task.wait(1)
+        BtnGoGas.Text = "الانتقال للتعبئة بالمحطة ⛽"
+        return
+    end
+    task.spawn(GoRefuel)
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    if not PointA or not PointB then
+        ToggleButton.Text = "حدد المكانين أولاً!"
+        task.wait(1)
+        ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
+        return
+    end
+
+    AutoFarmEnabled = not AutoFarmEnabled
+    ToggleButton.BackgroundColor3 = AutoFarmEnabled and Color3.fromRGB(40, 180, 50) or Color3.fromRGB(180, 40, 40)
+    ToggleButton.Text = AutoFarmEnabled and "بداية التجميع: (ON)" or "بداية التجميع: (OFF)"
+    
+    if AutoFarmEnabled then
+        InitialMoney = GetPlayerMoney()
+    end
+end)
+
+-- حلقة تحديث العداد وفحص البنزين تلقائياً
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local vehModel = GetVehicle()
+        local fuel = CheckFuelLevel(vehModel)
+        
+        if AutoFarmEnabled then
+            local nowMoney = GetPlayerMoney()
+            if nowMoney >= InitialMoney then
+                CurrentEarned = nowMoney - InitialMoney
             end
             
-            local dir = (CurrentTarget - currentPos).Unit
-            seat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetSpeed, seat.AssemblyLinearVelocity.Y, dir.Z * TargetSpeed)
+            if IsRefueling then
+                ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nتعبئة البنزين: " .. math.floor(fuel) .. " / 130"
+            else
+                ProfitLabel.Text = "الأرباح: +$" .. tostring(CurrentEarned) .. "\nحالة البنزين: " .. math.floor(fuel) .. "%"
+            end
+            
+            if fuel <= 5 and GasStationPoint and not IsRefueling then
+                task.spawn(GoRefuel)
+            end
+        else
+            ProfitLabel.Text = "الأرباح: $0\nحالة البنزين: " .. math.floor(fuel) .. "%"
+        end
+    end
+end)
+
+-- حلقة الحركة للتجميع بسرعة 185
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if AutoFarmEnabled and PointA and PointB and not IsRefueling then
+            local vehModel, seat = GetVehicle()
+            if vehModel and seat then
+                SafeTeleport(vehModel, PointA)
+                task.wait(0.2)
+                
+                while AutoFarmEnabled and not IsRefueling do
+                    local currentModel, currentSeat = GetVehicle()
+                    if not currentModel or currentSeat ~= seat then break end
+                    
+                    local currentPos = currentSeat.Position
+                    local targetPos = PointB.Position
+                    local dist = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(currentPos.X, 0, currentPos.Z)).Magnitude
+                    
+                    if dist > 30 then
+                        local dir = (Vector3.new(targetPos.X, currentPos.Y, targetPos.Z) - currentPos).Unit
+                        currentSeat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetMaxSpeed, currentSeat.AssemblyLinearVelocity.Y, dir.Z * TargetMaxSpeed)
+                    else
+                        SafeTeleport(vehModel, PointA)
+                        task.wait(0.2)
+                    end
+                    
+                    task.wait(0.02)
+                end
+            end
         end
     end
 end)
