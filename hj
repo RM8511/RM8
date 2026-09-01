@@ -1,7 +1,6 @@
 -- // ================================================
--- // Script: Driving Simulator Advanced Farm + Taxi
--- // Developer: RM8
--- // Features: Auto Drive (Saved Points) + Auto Taxi Farm
+-- // Script: Driving Simulator Auto Farm (Point A / Point B)
+-- // Developer Rights: RM8
 -- // ================================================
 
 local Players = game:GetService("Players")
@@ -10,15 +9,11 @@ local VirtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("RM8_FullFarm_UI") then
-    CoreGui.RM8_FullFarm_UI:Destroy()
+if CoreGui:FindFirstChild("RM8_DriveFarm_UI") then
+    CoreGui.RM8_DriveFarm_UI:Destroy()
 end
 
--- المتغيرات الأساسية
 local DriveFarmEnabled = false
-local TaxiFarmEnabled = false
-local IsTaxiBusy = false
-
 local PointA = nil
 local PointB = nil
 local CurrentTarget = nil
@@ -33,7 +28,7 @@ end)
 
 -- إنشاء الواجهة الرسمية (GUI)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RM8_FullFarm_UI"
+ScreenGui.Name = "RM8_DriveFarm_UI"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -58,8 +53,8 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 24, 35)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.35, 0, 0.15, 0)
-MainFrame.Size = UDim2.new(0, 250, 0, 310)
+MainFrame.Position = UDim2.new(0.35, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 240, 0, 240)
 MainFrame.Active = true
 MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
@@ -73,79 +68,66 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 0, 0, 8)
+TitleLabel.Position = UDim2.new(0, 0, 0, 10)
 TitleLabel.Size = UDim2.new(1, 0, 0, 20)
 TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "سكربت التجميع والتاكسي الشامل | RM8"
+TitleLabel.Text = "سكربت التجميع السريع | RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 13
+TitleLabel.TextSize = 14
 
--- زر حفظ النقاط (Point A / Point B)
+-- زر حفظ النقاط
 local SavePointsBtn = Instance.new("TextButton")
 SavePointsBtn.Name = "SavePointsBtn"
 SavePointsBtn.Parent = MainFrame
-SavePointsBtn.Position = UDim2.new(0.08, 0, 0.12, 0)
-SavePointsBtn.Size = UDim2.new(0.84, 0, 0, 32)
+SavePointsBtn.Position = UDim2.new(0.08, 0, 0.18, 0)
+SavePointsBtn.Size = UDim2.new(0.84, 0, 0, 34)
 SavePointsBtn.BackgroundColor3 = Color3.fromRGB(40, 90, 160)
 SavePointsBtn.Font = Enum.Font.SourceSansBold
 SavePointsBtn.Text = "1. حفظ النقاط (A / B)"
 SavePointsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SavePointsBtn.TextSize = 12
+SavePointsBtn.TextSize = 13
 Instance.new("UICorner", SavePointsBtn).CornerRadius = UDim.new(0, 6)
 
 -- زر مسح النقاط
 local ClearPointsBtn = Instance.new("TextButton")
 ClearPointsBtn.Name = "ClearPointsBtn"
 ClearPointsBtn.Parent = MainFrame
-ClearPointsBtn.Position = UDim2.new(0.08, 0, 0.24, 0)
-ClearPointsBtn.Size = UDim2.new(0.84, 0, 0, 32)
+ClearPointsBtn.Position = UDim2.new(0.08, 0, 0.35, 0)
+ClearPointsBtn.Size = UDim2.new(0.84, 0, 0, 34)
 ClearPointsBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
 ClearPointsBtn.Font = Enum.Font.SourceSansBold
 ClearPointsBtn.Text = "2. مسح النقاط المحفوظة"
 ClearPointsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ClearPointsBtn.TextSize = 12
+ClearPointsBtn.TextSize = 13
 Instance.new("UICorner", ClearPointsBtn).CornerRadius = UDim.new(0, 6)
 
--- زر تشغيل التجميع بين النقطتين
+-- زر التشغيل الإيقاف
 local DriveBtn = Instance.new("TextButton")
 DriveBtn.Name = "DriveBtn"
 DriveBtn.Parent = MainFrame
-DriveBtn.Position = UDim2.new(0.08, 0, 0.36, 0)
-DriveBtn.Size = UDim2.new(0.84, 0, 0, 34)
+DriveBtn.Position = UDim2.new(0.08, 0, 0.52, 0)
+DriveBtn.Size = UDim2.new(0.84, 0, 0, 36)
 DriveBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 DriveBtn.Font = Enum.Font.SourceSansBold
-DriveBtn.Text = "تجميع النقاط (185): OFF"
+DriveBtn.Text = "تشغيل التجميع (185): OFF"
 DriveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DriveBtn.TextSize = 12
+DriveBtn.TextSize = 13
 Instance.new("UICorner", DriveBtn).CornerRadius = UDim.new(0, 6)
-
--- زر تشغيل التاكسي التلقائي
-local TaxiBtn = Instance.new("TextButton")
-TaxiBtn.Name = "TaxiBtn"
-TaxiBtn.Parent = MainFrame
-TaxiBtn.Position = UDim2.new(0.08, 0, 0.49, 0)
-TaxiBtn.Size = UDim2.new(0.84, 0, 0, 34)
-TaxiBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-TaxiBtn.Font = Enum.Font.SourceSansBold
-TaxiBtn.Text = "تاكسي تلقائي: OFF"
-TaxiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TaxiBtn.TextSize = 12
-Instance.new("UICorner", TaxiBtn).CornerRadius = UDim.new(0, 6)
 
 -- نص عرض الحالة
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Name = "StatusLabel"
 StatusLabel.Parent = MainFrame
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0.08, 0, 0.63, 0)
-StatusLabel.Size = UDim2.new(0.84, 0, 0, 100)
+StatusLabel.Position = UDim2.new(0.08, 0, 0.70, 0)
+StatusLabel.Size = UDim2.new(0.84, 0, 0, 60)
 StatusLabel.Font = Enum.Font.SourceSansSemibold
-StatusLabel.Text = "الحالة: حدد النقاط أو شغل التاكسي..."
+StatusLabel.Text = "الحالة: احفظ النقطة الأولى والثانية..."
 StatusLabel.TextColor3 = Color3.fromRGB(200, 210, 225)
 StatusLabel.TextSize = 12
 StatusLabel.TextWrapped = true
 
--- الحصول على السيارة والمركبة
+-- الحصول على المركبة
 local function GetVehicle()
     local success, model, seat = pcall(function()
         local char = LocalPlayer.Character
@@ -161,61 +143,7 @@ local function GetVehicle()
     return nil, nil
 end
 
--- الانتقال الآمن
-local function SafeTeleport(model, targetCFrame)
-    if model and targetCFrame then
-        for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.AssemblyLinearVelocity = Vector3.zero
-                part.AssemblyAngularVelocity = Vector3.zero
-            end
-        end
-        model:PivotTo(targetCFrame + Vector3.new(0, 2, 0))
-    end
-end
-
--- قبول طلبات التاكسي تلقائياً من الجوال
-local function AutoAcceptTaxi()
-    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pGui then return false end
-    
-    for _, btn in ipairs(pGui:GetDescendants()) do
-        if btn:IsA("TextButton") or btn:IsA("ImageButton") then
-            local text = btn:IsA("TextButton") and btn.Text or btn.Name
-            if string.find(text, "قبول") or string.find(string.lower(text), "accept") then
-                pcall(function()
-                    for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                        conn:Fire()
-                    end
-                end)
-                return true
-            end
-        end
-    end
-    return false
-end
-
--- البحث عن المربع الأخضر بالخريطة
-local function GetTaxiTargetCFrame()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name == "TaxiZone" or obj.Name == "CustomerZone" or string.find(string.lower(obj.Name), "checkpoint") or string.find(string.lower(obj.Name), "dropoff") or string.find(string.lower(obj.Name), "pickup")) then
-            if obj.Transparency < 1 and (obj.Color == Color3.fromRGB(0, 255, 0) or obj.BrickColor.Name == "Br. green" or obj.BrickColor.Name == "Lime green") then
-                return obj.CFrame
-            end
-        end
-    end
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("BillboardGui") or v:IsA("Beam") then
-            local p = v.Parent
-            if p and p:IsA("BasePart") then
-                return p.CFrame
-            end
-        end
-    end
-    return nil
-end
-
--- برمجة أزرار النقاط والحفظ
+-- حفظ ومسح النقاط
 SavePointsBtn.MouseButton1Click:Connect(function()
     local _, seat = GetVehicle()
     if not seat then
@@ -229,7 +157,7 @@ SavePointsBtn.MouseButton1Click:Connect(function()
     elseif not PointB then
         PointB = seat.Position
         CurrentTarget = PointB
-        StatusLabel.Text = "تم حفظ النقطتين (A) و (B) بنجاح ✓\nيمكنك الآن تشغيل التجميع السريع!"
+        StatusLabel.Text = "تم حفظ النقطتين (A) و (B) بنجاح ✓\nيمكنك الآن تشغيل التجميع!"
     else
         StatusLabel.Text = "النقاط محفوظة بالفعل! استخدم زر المسح لإعادتها."
     end
@@ -241,46 +169,24 @@ ClearPointsBtn.MouseButton1Click:Connect(function()
     CurrentTarget = nil
     DriveFarmEnabled = false
     DriveBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    DriveBtn.Text = "تجميع النقاط (185): OFF"
+    DriveBtn.Text = "تشغيل التجميع (185): OFF"
     StatusLabel.Text = "تم مسح جميع النقاط المحفوظة."
 end)
 
--- مفاتيح التفعيل
+-- التفعيل والإيقاف
 DriveBtn.MouseButton1Click:Connect(function()
     if not PointA or not PointB then
-        StatusLabel.Text = "تنبيه: أحفظ النقطتين (A) و (B) أولاً!"
+        StatusLabel.Text = "تنبيه: احفظ النقطتين (A) و (B) أولاً!"
         return
     end
     
     DriveFarmEnabled = not DriveFarmEnabled
-    if DriveFarmEnabled then TaxiFarmEnabled = false end
-    
     DriveBtn.BackgroundColor3 = DriveFarmEnabled and Color3.fromRGB(40, 180, 50) or Color3.fromRGB(180, 40, 40)
-    DriveBtn.Text = DriveFarmEnabled and "تجميع النقاط (185): ON" or "تجميع النقاط (185): OFF"
-    
-    TaxiBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    TaxiBtn.Text = "تاكسي تلقائي: OFF"
-    
-    StatusLabel.Text = DriveFarmEnabled and "التجميع السريع بين النقاط شغال ⚡" or "التجميع متوقف"
+    DriveBtn.Text = DriveFarmEnabled and "تشغيل التجميع (185): ON" or "تشغيل التجميع (185): OFF"
+    StatusLabel.Text = DriveFarmEnabled and "التجميع السريع شغال بين النقطتين ⚡" or "التجميع متوقف"
 end)
 
-TaxiBtn.MouseButton1Click:Connect(function()
-    TaxiFarmEnabled = not TaxiFarmEnabled
-    if TaxiFarmEnabled then DriveFarmEnabled = false end
-    
-    TaxiBtn.BackgroundColor3 = TaxiFarmEnabled and Color3.fromRGB(40, 180, 50) or Color3.fromRGB(180, 40, 40)
-    TaxiBtn.Text = TaxiFarmEnabled and "تاكسي تلقائي: ON" or "تاكسي تلقائي: OFF"
-    
-    DriveBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    DriveBtn.Text = "تجميع النقاط (185): OFF"
-    
-    if not TaxiFarmEnabled then
-        StatusLabel.Text = "التاكسي متوقف"
-        IsTaxiBusy = false
-    end
-end)
-
--- حلقة الحركة بين النقطتين A و B
+-- حلقة التحرك المباشر والسريع
 RunService.Heartbeat:Connect(function()
     if DriveFarmEnabled and PointA and PointB then
         local vehModel, seat = GetVehicle()
@@ -294,40 +200,6 @@ RunService.Heartbeat:Connect(function()
             
             local dir = (CurrentTarget - currentPos).Unit
             seat.AssemblyLinearVelocity = Vector3.new(dir.X * TargetSpeed, seat.AssemblyLinearVelocity.Y, dir.Z * TargetSpeed)
-        end
-    end
-end)
-
--- حلقة التاكسي التلقائي
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if TaxiFarmEnabled and not IsTaxiBusy then
-            local vehModel, seat = GetVehicle()
-            
-            if not vehModel then
-                StatusLabel.Text = "الحالة: اركب السيارة لتشغيل التاكسي!"
-            else
-                StatusLabel.Text = "الحالة: البحث عن طلبات تاكسي... 🚕"
-                AutoAcceptTaxi()
-                
-                local targetCFrame = GetTaxiTargetCFrame()
-                if targetCFrame then
-                    IsTaxiBusy = true
-                    StatusLabel.Text = "الحالة: الانتقال للمربع الأخضر..."
-                    
-                    SafeTeleport(vehModel, targetCFrame)
-                    
-                    for i = 3, 1, -1 do
-                        StatusLabel.Text = "الحالة: الانتظار بالمربع (" .. i .. " ث)..."
-                        task.wait(1)
-                    end
-                    
-                    StatusLabel.Text = "الحالة: اكتملت النقطة بنجاح ✓"
-                    task.wait(0.5)
-                    IsTaxiBusy = false
-                end
-            end
         end
     end
 end)
