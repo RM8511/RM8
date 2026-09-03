@@ -1,7 +1,7 @@
 -- // ================================================
--- // Script: RM8 Hub - Driving Simulator
--- // Theme: Dark Black
+-- // Script: Driving Simulator - RM8 Hub (Smooth Slider)
 -- // Developer: RM8
+-- // Theme: Dark Black
 -- // ================================================
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -26,7 +26,7 @@ local GasSpotCFrame = nil
 
 local TiltRightEnabled = false
 local TiltLeftEnabled = false
-local TiltPower = 2.5 -- نسبة الترفيع الاحتراضية
+local TiltAngle = 45
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -45,16 +45,16 @@ local function GetVehicle()
 end
 
 -- ================================================
--- 1. تبويب التجميع وتعبئة البنزين
+-- 1. تبويب التجميع بالتنقل السريع (Teleport)
 -- ================================================
 local FarmTab = Window:CreateTab("تجميع وسرعة", 4483362458)
 
 FarmTab:CreateButton({
    Name = "1. حفظ النقطة الأولى (Point 1)",
    Callback = function()
-      local _, seat = GetVehicle()
-      if seat then
-         PointA = seat.Position
+      local _, _, root = GetVehicle()
+      if root then
+         PointA = root.CFrame
          Rayfield:Notify({Title = "RM8", Content = "تم حفظ النقطة 1 بنجاح!", Duration = 2})
       else
          Rayfield:Notify({Title = "خطأ", Content = "اركب السيارة أولاً!", Duration = 2})
@@ -65,9 +65,9 @@ FarmTab:CreateButton({
 FarmTab:CreateButton({
    Name = "2. حفظ النقطة الثانية (Point 2)",
    Callback = function()
-      local _, seat = GetVehicle()
-      if seat then
-         PointB = seat.Position
+      local _, _, root = GetVehicle()
+      if root then
+         PointB = root.CFrame
          CurrentTarget = PointB
          Rayfield:Notify({Title = "RM8", Content = "تم حفظ النقطة 2 بنجاح!", Duration = 2})
       else
@@ -77,7 +77,7 @@ FarmTab:CreateButton({
 })
 
 FarmTab:CreateToggle({
-   Name = "تفعيل التجميع السريع (بين النقطة 1 و 2)",
+   Name = "تفعيل التجميع بالتنقل السريع (Teleport Farm)",
    CurrentValue = false,
    Flag = "FarmToggle",
    Callback = function(Value)
@@ -94,7 +94,7 @@ FarmTab:CreateSection("تعبئة البنزين والتجميع")
 FarmTab:CreateButton({
    Name = "حفظ موقع محطة البنزين",
    Callback = function()
-      local _, seat, root = GetVehicle()
+      local _, _, root = GetVehicle()
       if root then
          GasSpotCFrame = root.CFrame
          Rayfield:Notify({Title = "RM8", Content = "تم حفظ موقع البنزين!", Duration = 2})
@@ -112,19 +112,19 @@ FarmTab:CreateToggle({
 })
 
 -- ================================================
--- 2. تبويب الترفيع (مطابق للمقطع بالنسبة والوزن)
+-- 2. تبويب الترفيع (سلايدر سلس وسريع نفس المقطع)
 -- ================================================
 local TiltTab = Window:CreateTab("الترفيع والتوازن", 4483362458)
 
-TiltTab:CreateSlider({
-   Name = "نسبة وقوة الترفيع (Tilt Power)",
-   Range = {0.5, 10},
-   Increment = 0.1,
-   Suffix = "x",
-   CurrentValue = 2.5,
-   Flag = "TiltPowerSlider",
+local TiltSlider = TiltTab:CreateSlider({
+   Name = "نسبة وزاوية الترفيع",
+   Range = {0, 90},
+   Increment = 0.5,
+   Suffix = "°",
+   CurrentValue = 45,
+   Flag = "SmoothTiltSlider",
    Callback = function(Value)
-      TiltPower = Value
+      TiltAngle = Value
    end,
 })
 
@@ -149,9 +149,11 @@ TiltTab:CreateToggle({
 })
 
 -- ================================================
--- المحرك الفيزيائي
+-- المحرك الفيزيائي المستقر والمستجيب بمرونة
 -- ================================================
-RunService.Heartbeat:Connect(function(dt)
+local lastTeleport = tick()
+
+RunService.RenderStepped:Connect(function()
     local model, seat, root = GetVehicle()
     
     if model and seat and root then
@@ -159,24 +161,28 @@ RunService.Heartbeat:Connect(function(dt)
         if GasFarmEnabled and GasSpotCFrame then
             root.CFrame = GasSpotCFrame
             root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            return
         end
         
-        -- 2. التجميع التلقائي
-        if DriveFarmEnabled and PointA and PointB and not GasFarmEnabled then
-            local currentPos = seat.Position
-            local dist = (Vector3.new(currentPos.X, 0, currentPos.Z) - Vector3.new(CurrentTarget.X, 0, CurrentTarget.Z)).Magnitude
-            if dist < 15 then
+        -- 2. التجميع السريع بالتنقل
+        if DriveFarmEnabled and PointA and PointB then
+            if tick() - lastTeleport > 0.2 then
                 CurrentTarget = (CurrentTarget == PointA) and PointB or PointA
+                root.CFrame = CurrentTarget
+                root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                lastTeleport = tick()
             end
-            local dir = (CurrentTarget - currentPos).Unit
-            seat.AssemblyLinearVelocity = Vector3.new(dir.X * 180, seat.AssemblyLinearVelocity.Y, dir.Z * 180)
+            return
         end
         
-        -- 3. تطبيق الترفيع المباشر بمركز كتلة السيارة (Center Offset)
-        if (TiltRightEnabled or TiltLeftEnabled) and not GasFarmEnabled then
-            local sideVector = TiltRightEnabled and root.CFrame.RightVector or -root.CFrame.RightVector
-            root.AssemblyAngularVelocity = root.CFrame.LookVector * (TiltPower * 1.5)
-            root:ApplyImpulseAtPosition(sideVector * (TiltPower * 150), root.Position + Vector3.new(0, -1, 0))
+        -- 3. الترفيع الثابت والسلس بنفس الزاوية المحددة في السلايدر
+        if TiltRightEnabled or TiltLeftEnabled then
+            local radAngle = math.rad(TiltRightEnabled and -TiltAngle or TiltAngle)
+            local currentPos = root.Position
+            local _, yaw, _ = root.CFrame:ToOrientation()
+            
+            root.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(0, 0, radAngle)
+            root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
         end
     end
 end)
