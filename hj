@@ -1,36 +1,166 @@
 -- // ================================================
--- // Script: Driving Simulator - RM8 Hub (Smooth Slider)
--- // Developer: RM8
--- // Theme: Dark Black
+-- // Custom UI with Toggle Circle Button (RM8 Hub)
 -- // ================================================
-
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-   Name = "RM8 HUB | محاكي القيادة",
-   LoadingTitle = "جاري تحميل السكربت...",
-   LoadingSubtitle = "بواسطة RM8",
-   Theme = "Dark",
-   ConfigurationSaving = { Enabled = false },
-   Discord = { Enabled = false },
-   KeySystem = false
-})
-
--- // المتغيرات الأساسية
-local DriveFarmEnabled = false
-local GasFarmEnabled = false
-local PointA = nil
-local PointB = nil
-local CurrentTarget = nil
-local GasSpotCFrame = nil
-
-local TiltRightEnabled = false
-local TiltLeftEnabled = false
-local TiltAngle = 45
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+
+-- // 1. إنشاء الشاشة الأساسية (ScreenGui)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RM8_CustomUI"
+ScreenGui.ResetOnSpawn = false
+
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = game:GetService("CoreGui")
+else
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- // 2. الزر الدائري لفتح/إغلاق الواجهة (Toggle Circle Button)
+local ToggleCircle = Instance.new("TextButton")
+ToggleCircle.Name = "ToggleCircle"
+ToggleCircle.Size = UDim2.new(0, 50, 0, 50)
+ToggleCircle.Position = UDim2.new(0.05, 0, 0.15, 0) -- يظهر في زاوية الشاشة
+ToggleCircle.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+ToggleCircle.Text = "RM8"
+ToggleCircle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleCircle.Font = Enum.Font.SourceSansBold
+ToggleCircle.TextSize = 16
+ToggleCircle.Active = true
+ToggleCircle.Draggable = true -- تقدر تسحب الزر الدائري وتغير مكانه في الشاشة
+ToggleCircle.Parent = ScreenGui
+
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0) -- يجعله دائرة كاملة
+CircleCorner.Parent = ToggleCircle
+
+local CircleStroke = Instance.new("UIStroke")
+CircleStroke.Color = Color3.fromRGB(255, 255, 255)
+CircleStroke.Thickness = 2
+CircleStroke.Parent = ToggleCircle
+
+-- // 3. الإطار الرئيسي للواجهة (Main Frame)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -130)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- العنوان
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "  RM8 HUB | محاكي القيادة"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- // 4. العناصر والأزرار داخل الواجهة
+local TiltToggleBtn = Instance.new("TextButton")
+TiltToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TiltToggleBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+TiltToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TiltToggleBtn.Text = "الترفيع (إيقاف)"
+TiltToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TiltToggleBtn.Font = Enum.Font.SourceSansBold
+TiltToggleBtn.TextSize = 14
+TiltToggleBtn.Parent = MainFrame
+
+local BtnCorner1 = Instance.new("UICorner")
+BtnCorner1.CornerRadius = UDim.new(0, 6)
+BtnCorner1.Parent = TiltToggleBtn
+
+-- السلايدر (Slider)
+local SliderFrame = Instance.new("Frame")
+SliderFrame.Size = UDim2.new(0.9, 0, 0, 30)
+SliderFrame.Position = UDim2.new(0.05, 0, 0.38, 0)
+SliderFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SliderFrame.Parent = MainFrame
+
+local SliderCorner = Instance.new("UICorner")
+SliderCorner.CornerRadius = UDim.new(0, 6)
+SliderCorner.Parent = SliderFrame
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+SliderFill.BorderSizePixel = 0
+SliderFill.Parent = SliderFrame
+
+local SliderFillCorner = Instance.new("UICorner")
+SliderFillCorner.CornerRadius = UDim.new(0, 6)
+SliderFillCorner.Parent = SliderFill
+
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Size = UDim2.new(1, 0, 1, 0)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Text = "نسبة الترفيع: 35°"
+SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SliderLabel.Font = Enum.Font.SourceSans
+SliderLabel.TextSize = 14
+SliderLabel.Parent = SliderFrame
+
+-- أزرار حفظ النقاط والتجميع
+local PointABtn = Instance.new("TextButton")
+PointABtn.Size = UDim2.new(0.42, 0, 0, 30)
+PointABtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+PointABtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PointABtn.Text = "حفظ النقطة 1"
+PointABtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PointABtn.Font = Enum.Font.SourceSans
+PointABtn.TextSize = 13
+PointABtn.Parent = MainFrame
+
+local PointBBtn = Instance.new("TextButton")
+PointBBtn.Size = UDim2.new(0.42, 0, 0, 30)
+PointBBtn.Position = UDim2.new(0.53, 0, 0.55, 0)
+PointBBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PointBBtn.Text = "حفظ النقطة 2"
+PointBBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PointBBtn.Font = Enum.Font.SourceSans
+PointBBtn.TextSize = 13
+PointBBtn.Parent = MainFrame
+
+local FarmToggleBtn = Instance.new("TextButton")
+FarmToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+FarmToggleBtn.Position = UDim2.new(0.05, 0, 0.72, 0)
+FarmToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FarmToggleBtn.Text = "التجميع السريع (إيقاف)"
+FarmToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FarmToggleBtn.Font = Enum.Font.SourceSansBold
+FarmToggleBtn.TextSize = 14
+FarmToggleBtn.Parent = MainFrame
+
+-- // 5. منطق فتح وإغلاق الواجهة بالزر الدائري
+ToggleCircle.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- // 6. منطق ووظائف الفيزيا والتجميع
+local TiltActive = false
+local TiltAngle = 35
+local FarmActive = false
+local PointA, PointB = nil, nil
 
 local function GetVehicle()
     local char = LocalPlayer.Character
@@ -44,145 +174,93 @@ local function GetVehicle()
     return nil, nil, nil
 end
 
--- ================================================
--- 1. تبويب التجميع بالتنقل السريع (Teleport)
--- ================================================
-local FarmTab = Window:CreateTab("تجميع وسرعة", 4483362458)
+-- تشغيل وإيقاف الترفيع
+TiltToggleBtn.MouseButton1Click:Connect(function()
+    TiltActive = not TiltActive
+    TiltToggleBtn.Text = TiltActive and "الترفيع (شغال)" or "الترفيع (إيقاف)"
+    TiltToggleBtn.BackgroundColor3 = TiltActive and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
+end)
 
-FarmTab:CreateButton({
-   Name = "1. حفظ النقطة الأولى (Point 1)",
-   Callback = function()
-      local _, _, root = GetVehicle()
-      if root then
-         PointA = root.CFrame
-         Rayfield:Notify({Title = "RM8", Content = "تم حفظ النقطة 1 بنجاح!", Duration = 2})
-      else
-         Rayfield:Notify({Title = "خطأ", Content = "اركب السيارة أولاً!", Duration = 2})
-      end
-   end,
-})
+-- تحريك السلايدر
+local dragging = false
+SliderFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+    end
+end)
 
-FarmTab:CreateButton({
-   Name = "2. حفظ النقطة الثانية (Point 2)",
-   Callback = function()
-      local _, _, root = GetVehicle()
-      if root then
-         PointB = root.CFrame
-         CurrentTarget = PointB
-         Rayfield:Notify({Title = "RM8", Content = "تم حفظ النقطة 2 بنجاح!", Duration = 2})
-      else
-         Rayfield:Notify({Title = "خطأ", Content = "اركب السيارة أولاً!", Duration = 2})
-      end
-   end,
-})
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
 
-FarmTab:CreateToggle({
-   Name = "تفعيل التجميع بالتنقل السريع (Teleport Farm)",
-   CurrentValue = false,
-   Flag = "FarmToggle",
-   Callback = function(Value)
-      if Value and (not PointA or not PointB) then
-         Rayfield:Notify({Title = "تنبيه", Content = "احفظ النقطة 1 والنقطة 2 أولاً!", Duration = 3})
-         return
-      end
-      DriveFarmEnabled = Value
-   end,
-})
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local posX = math.clamp((input.Position.X - SliderFrame.AbsolutePosition.X) / SliderFrame.AbsoluteSize.X, 0, 1)
+        SliderFill.Size = UDim2.new(posX, 0, 1, 0)
+        TiltAngle = math.floor(posX * 60)
+        SliderLabel.Text = "نسبة الترفيع: " .. tostring(TiltAngle) .. "°"
+    end
+end)
 
-FarmTab:CreateSection("تعبئة البنزين والتجميع")
+-- أزرار التجميع
+PointABtn.MouseButton1Click:Connect(function()
+    local _, _, root = GetVehicle()
+    if root then PointA = root.CFrame PointABtn.Text = "تم الحفظ 1" end
+end)
 
-FarmTab:CreateButton({
-   Name = "حفظ موقع محطة البنزين",
-   Callback = function()
-      local _, _, root = GetVehicle()
-      if root then
-         GasSpotCFrame = root.CFrame
-         Rayfield:Notify({Title = "RM8", Content = "تم حفظ موقع البنزين!", Duration = 2})
-      end
-   end,
-})
+PointBBtn.MouseButton1Click:Connect(function()
+    local _, _, root = GetVehicle()
+    if root then PointB = root.CFrame PointBBtn.Text = "تم الحفظ 2" end
+end)
 
-FarmTab:CreateToggle({
-   Name = "تفعيل تعبئة البنزين التلقائية",
-   CurrentValue = false,
-   Flag = "GasToggle",
-   Callback = function(Value)
-      GasFarmEnabled = Value
-   end,
-})
+FarmToggleBtn.MouseButton1Click:Connect(function()
+    if not PointA or not PointB then return end
+    FarmActive = not FarmActive
+    FarmToggleBtn.Text = FarmActive and "التجميع (شغال)" or "التجميع (إيقاف)"
+    FarmToggleBtn.BackgroundColor3 = FarmActive and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
+end)
 
--- ================================================
--- 2. تبويب الترفيع (سلايدر سلس وسريع نفس المقطع)
--- ================================================
-local TiltTab = Window:CreateTab("الترفيع والتوازن", 4483362458)
-
-local TiltSlider = TiltTab:CreateSlider({
-   Name = "نسبة وزاوية الترفيع",
-   Range = {0, 90},
-   Increment = 0.5,
-   Suffix = "°",
-   CurrentValue = 45,
-   Flag = "SmoothTiltSlider",
-   Callback = function(Value)
-      TiltAngle = Value
-   end,
-})
-
-TiltTab:CreateToggle({
-   Name = "ترفيع لليمين ➔",
-   CurrentValue = false,
-   Flag = "TiltRight",
-   Callback = function(Value)
-      TiltRightEnabled = Value
-      if Value then TiltLeftEnabled = false end
-   end,
-})
-
-TiltTab:CreateToggle({
-   Name = "ترفيع لليسار ⬅",
-   CurrentValue = false,
-   Flag = "TiltLeft",
-   Callback = function(Value)
-      TiltLeftEnabled = Value
-      if Value then TiltRightEnabled = false end
-   end,
-})
-
--- ================================================
--- المحرك الفيزيائي المستقر والمستجيب بمرونة
--- ================================================
+-- // 7. المحرك الفيزيائي
+local bg = Instance.new("BodyGyro")
+bg.MaxTorque = Vector3.new(0, 0, 9e9)
+bg.P = 20000
 local lastTeleport = tick()
 
 RunService.RenderStepped:Connect(function()
     local model, seat, root = GetVehicle()
     
     if model and seat and root then
-        -- 1. تعبئة البنزين
-        if GasFarmEnabled and GasSpotCFrame then
-            root.CFrame = GasSpotCFrame
-            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            return
-        end
-        
-        -- 2. التجميع السريع بالتنقل
-        if DriveFarmEnabled and PointA and PointB then
+        if FarmActive and PointA and PointB then
             if tick() - lastTeleport > 0.2 then
-                CurrentTarget = (CurrentTarget == PointA) and PointB or PointA
-                root.CFrame = CurrentTarget
-                root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                root.CFrame = (root.CFrame == PointA) and PointB or PointA
                 lastTeleport = tick()
             end
             return
         end
         
-        -- 3. الترفيع الثابت والسلس بنفس الزاوية المحددة في السلايدر
-        if TiltRightEnabled or TiltLeftEnabled then
-            local radAngle = math.rad(TiltRightEnabled and -TiltAngle or TiltAngle)
-            local currentPos = root.Position
+        if TiltActive then
+            bg.Parent = root
+            local roll = math.rad(-TiltAngle)
             local _, yaw, _ = root.CFrame:ToOrientation()
             
-            root.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(0, 0, radAngle)
-            root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            for _, part in pairs(model:GetDescendants()) do
+                if part:IsA("BasePart") and part ~= root then
+                    part.CanCollide = false
+                end
+            end
+            
+            bg.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, yaw, roll)
+        else
+            bg.Parent = nil
+            for _, part in pairs(model:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
         end
+    else
+        bg.Parent = nil
     end
 end)
