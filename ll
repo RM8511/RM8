@@ -1,49 +1,87 @@
 -- ==========================================
--- Obfuscated Luau Protection Framework
--- Encrypted & Protected Source
+-- Safe Anti-Ban System with Counter GUI
 -- ==========================================
 
-local _L = {
-    [1] = string.char(84, 119, 101, 101, 110, 83, 101, 114, 118, 105, 99, 101),
-    [2] = string.char(80, 108, 97, 121, 101, 114, 115),
-    [3] = string.char(72, 117, 109, 97, 110, 111, 105, 100, 82, 111, 111, 116, 80, 97, 114, 116),
-    [4] = string.char(67, 70, 114, 97, 109, 101)
-}
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
 
-local _S = function(i) return game:GetService(_L[i]) end
-local _TS = _S(1)
-local _PL = _S(2)
-local _LP = _PL.LocalPlayer
+-- 1. إنشاء واجهة الحماية (GUI)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ProtectionCounterGui"
+ScreenGui.ResetOnSpawn = false
 
-local Protection = {}
+-- محاولة وضع الواجهة في CoreGui لحمايتها من المسح، أو PlayerGui كخيار بديلي
+local success = pcall(function()
+    ScreenGui.Parent = CoreGui
+end)
+if not success then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
-Protection.SafeTween = unpack({function(targetCFrame, speed)
-    local char = _LP.Character or _LP.CharacterAdded:Wait()
-    local hrp = char and char:FindFirstChild(_L[3])
-    if not hrp then return end
-    
-    local dist = (hrp.Position - targetCFrame.Position).Magnitude
-    local tTime = dist / (speed or 50)
-    
-    local tInfo = TweenInfo.new(tTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    local tw = _TS:Create(hrp, tInfo, {[_L[4]] = targetCFrame})
-    tw:Play()
-    tw.Completed:Wait()
-end})
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 70)
+MainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- تسمح بسحب القائمة للشاشة
+MainFrame.Parent = ScreenGui
 
-Protection.StartSafeLoop = unpack({function(actionCallback, minDelay, maxDelay)
-    task.spawn(function()
-        while task.wait() do
-            local ok, err = pcall(actionCallback)
-            if not ok then end
-            
-            local rnd = math.random((minDelay or 0.2) * 1000, (maxDelay or 0.6) * 1000) / 1000
-            task.wait(rnd)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 0, 30)
+TitleLabel.Position = UDim2.new(0, 0, 0, 5)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "🛡️ نظام الحماية المباشر"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Parent = MainFrame
+
+local CounterLabel = Instance.new("TextLabel")
+CounterLabel.Size = UDim2.new(1, 0, 0, 30)
+CounterLabel.Position = UDim2.new(0, 0, 0, 32)
+CounterLabel.BackgroundTransparency = 1
+CounterLabel.Text = "الباندات المحجوبة: 0"
+CounterLabel.TextColor3 = Color3.fromRGB(85, 255, 127)
+CounterLabel.TextSize = 16
+CounterLabel.Font = Enum.Font.SourceSansBold
+CounterLabel.Parent = MainFrame
+
+-- 2. متغير حصر الباندات المحجوبة
+local blockedCount = 0
+
+local function incrementBlocked()
+    blockedCount = blockedCount + 1
+    CounterLabel.Text = "الباندات المحجوبة: " .. tostring(blockedCount)
+end
+
+-- 3. اعتراض تقارير الحظر المشبوهة (Namecall Hooking)
+local gmt = getrawmetatable(game)
+local oldNamecall = gmt.__namecall
+setreadonly(gmt, false)
+
+gmt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+
+    if method == "FireServer" or method == "InvokeServer" then
+        local remoteName = tostring(self):lower()
+        
+        -- الفلاتر الشائعة التي تستخدمها السيرفرات لإرسال تقارير الحظر
+        if remoteName:find("ban") or remoteName:find("detect") or remoteName:find("cheat") or remoteName:find("log") or remoteName:find("flag") then
+            incrementBlocked()
+            return nil -- إلغاء إرسال التقرير للسيرفر
         end
-    end)
-end})
+    end
 
--- Execution Loop Example
-Protection.StartSafeLoop(function()
-    -- الأوامر المراد تكرارها توضع هنا
-end, 0.3, 0.7)
+    return oldNamecall(self, ...)
+end)
+
+setreadonly(gmt, true)
+
+print("تم تشغيل نظام الحماية والقائمة بنجاح.")
