@@ -1,14 +1,15 @@
 -- ==========================================
--- Safe Anti-Ban System with Counter GUI
+-- Anti-Ban Protection System with GUI Counter
+-- Repository: RM8 / File: ll
 -- ==========================================
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- إنشاء القائمة الواجهة (GUI)
+-- 1. إنشاء واجهة العداد (GUI)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ProtectionCounterGui"
+ScreenGui.Name = "RM8_ProtectionGui"
 ScreenGui.ResetOnSpawn = false
 
 local success = pcall(function()
@@ -22,7 +23,7 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 70)
 MainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -36,7 +37,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, 0, 0, 30)
 TitleLabel.Position = UDim2.new(0, 0, 0, 5)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🛡️ نظام الحماية المباشر"
+TitleLabel.Text = "🛡️ نظام حماية RM8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 14
 TitleLabel.Font = Enum.Font.SourceSansBold
@@ -52,7 +53,7 @@ CounterLabel.TextSize = 16
 CounterLabel.Font = Enum.Font.SourceSansBold
 CounterLabel.Parent = MainFrame
 
--- نظام عداد محاولات الحظر
+-- 2. عداد التقارير الممنوعة
 local blockedCount = 0
 
 local function incrementBlocked()
@@ -60,7 +61,7 @@ local function incrementBlocked()
     CounterLabel.Text = "الباندات المحجوبة: " .. tostring(blockedCount)
 end
 
--- اعتراض وحجب تقارير الحظر (Namecall Hooking)
+-- 3. اعتراض وحجب التقارير الموجهة للسيرفر (Hooking)
 local gmt = getrawmetatable(game)
 local oldNamecall = gmt.__namecall
 setreadonly(gmt, false)
@@ -81,3 +82,5 @@ gmt.__namecall = newcclosure(function(self, ...)
 end)
 
 setreadonly(gmt, true)
+
+print("[RM8 Protection] تم تفعيل نظام الحماية والعداد المباشر بنجاح.")
