@@ -6,12 +6,11 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. إنشاء واجهة الحماية (GUI)
+-- إنشاء القائمة الواجهة (GUI)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ProtectionCounterGui"
 ScreenGui.ResetOnSpawn = false
 
--- محاولة وضع الواجهة في CoreGui لحمايتها من المسح، أو PlayerGui كخيار بديلي
 local success = pcall(function()
     ScreenGui.Parent = CoreGui
 end)
@@ -26,7 +25,7 @@ MainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- تسمح بسحب القائمة للشاشة
+MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -53,7 +52,7 @@ CounterLabel.TextSize = 16
 CounterLabel.Font = Enum.Font.SourceSansBold
 CounterLabel.Parent = MainFrame
 
--- 2. متغير حصر الباندات المحجوبة
+-- نظام عداد محاولات الحظر
 local blockedCount = 0
 
 local function incrementBlocked()
@@ -61,7 +60,7 @@ local function incrementBlocked()
     CounterLabel.Text = "الباندات المحجوبة: " .. tostring(blockedCount)
 end
 
--- 3. اعتراض تقارير الحظر المشبوهة (Namecall Hooking)
+-- اعتراض وحجب تقارير الحظر (Namecall Hooking)
 local gmt = getrawmetatable(game)
 local oldNamecall = gmt.__namecall
 setreadonly(gmt, false)
@@ -72,10 +71,9 @@ gmt.__namecall = newcclosure(function(self, ...)
     if method == "FireServer" or method == "InvokeServer" then
         local remoteName = tostring(self):lower()
         
-        -- الفلاتر الشائعة التي تستخدمها السيرفرات لإرسال تقارير الحظر
         if remoteName:find("ban") or remoteName:find("detect") or remoteName:find("cheat") or remoteName:find("log") or remoteName:find("flag") then
             incrementBlocked()
-            return nil -- إلغاء إرسال التقرير للسيرفر
+            return nil
         end
     end
 
@@ -83,5 +81,3 @@ gmt.__namecall = newcclosure(function(self, ...)
 end)
 
 setreadonly(gmt, true)
-
-print("تم تشغيل نظام الحماية والقائمة بنجاح.")
