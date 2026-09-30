@@ -1,0 +1,234 @@
+local _version = "1.6.66"
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))() 
+
+local Window = WindUI:CreateWindow({
+    Title = "RH | RM8 - Kansas County",
+    Icon = "webhook",
+    Author = "by .ftgs and .ftgs",
+})
+
+-- ================================================
+-- القوائم (Tabs)
+-- ================================================
+local MacFarmTab = Window:Tab({
+    Title = "تفريم ماك💵",
+    Icon = "utensils",
+})
+
+-- ================================================
+-- الخدمات والمتغيرات الأساسية
+-- ================================================
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+
+local FullAutoEnabled = false
+local MacCFrame = CFrame.new(23596.85, 8.2, 16159.02)
+local FlySpeed = 70 
+
+-- Anti-AFK
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- دالة النقل اللحظي
+local function InstantTP(targetCF)
+    if not targetCF then return end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+        root.CFrame = targetCF
+    end
+end
+
+-- دالة الطيران السلس
+local function TweenTo(targetCF)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart
+    
+    local currentSpeed = FlySpeed
+    if not currentSpeed or currentSpeed <= 0 then currentSpeed = 70 end
+    
+    local distance = (root.Position - targetCF.Position).Magnitude
+    local timeToTravel = distance / currentSpeed
+    
+    local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCF})
+    
+    tween:Play()
+    
+    local elapsed = 0
+    while elapsed < timeToTravel and FullAutoEnabled do
+        task.wait(0.05)
+        elapsed = elapsed + 0.05
+        root.AssemblyLinearVelocity = Vector3.zero
+    end
+end
+
+-- دالة الضغط الإجبارية
+local function ForceClickAllPrompts()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart
+
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            local parent = prompt.Parent
+            local pos = parent and parent:IsA("BasePart") and parent.Position or root.Position
+            
+            if (pos - root.Position).Magnitude <= 30 then
+                prompt.HoldDuration = 0
+                prompt.RequiresLineOfSight = false
+                prompt.Enabled = true
+
+                if fireproximityprompt then
+                    fireproximityprompt(prompt)
+                else
+                    prompt:InputHoldBegin()
+                    task.wait(0.02)
+                    prompt:InputHoldEnd()
+                end
+                
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end
+        end
+    end
+end
+
+-- البحث عن المربع الأحمر
+local function GetRedDeliveryBox()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if (obj.Name == "DeliverySpot" or obj.Name == "DeliveryLocation" or string.find(string.lower(obj.Name), "delivery")) then
+                if obj.Color.R > 0.5 and obj.Transparency < 1 then
+                    return obj
+                end
+            end
+        elseif obj:IsA("Model") then
+            if string.find(string.lower(obj.Name), "delivery") then
+                local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if primary and primary.Transparency < 1 then return primary end
+            end
+        end
+    end
+    return nil
+end
+
+-- ================================================
+-- أزرار الواجهة
+-- ================================================
+
+MacFarmTab:Button({
+    Title = "📍 حفظ موقع اللابتوب",
+    Callback = function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            MacCFrame = char.HumanoidRootPart.CFrame
+            WindUI:Notify({ Title = "نجاح 🍔", Content = "تم حفظ موقع اللابتوب!", Duration = 3 })
+        end
+    end
+})
+
+-- شريط (سلايدر) ضبط السرعة
+MacFarmTab:Slider({
+    Title = "✈️ ضبط سرعة الطيران للبيت",
+    Value = { Min = 30, Max = 150, Default = 70 },
+    Callback = function(val)
+        local selectedValue = typeof(val) == "table" and val.Value or val
+        if selectedValue and tonumber(selectedValue) and tonumber(selectedValue) > 0 then
+            FlySpeed = tonumber(selectedValue)
+        else
+            FlySpeed = 70
+        end
+    end
+})
+
+-- أزرار السرعة الجاهزة
+MacFarmTab:Button({
+    Title = "🐢 سرعة هادئة (50)",
+    Callback = function()
+        FlySpeed = 50
+        WindUI:Notify({ Title = "السرعة", Content = "تم تعيين السرعة إلى 50", Duration = 2 })
+    end
+})
+
+MacFarmTab:Button({
+    Title = "⚡ سرعة متوسطة (80)",
+    Callback = function()
+        FlySpeed = 80
+        WindUI:Notify({ Title = "السرعة", Content = "تم تعيين السرعة إلى 80", Duration = 2 })
+    end
+})
+
+MacFarmTab:Button({
+    Title = "🚀 سرعة عالية (120)",
+    Callback = function()
+        FlySpeed = 120
+        WindUI:Notify({ Title = "السرعة", Content = "تم تعيين السرعة إلى 120", Duration = 2 })
+    end
+})
+
+MacFarmTab:Toggle({
+    Title = "بدء التفريم 🚀",
+    Value = false,
+    Callback = function(state)
+        FullAutoEnabled = state
+        if state then
+            WindUI:Notify({ Title = "RM8", Content = "تم التشغيل!", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "RM8", Content = "تم الإيقاف!", Duration = 3 })
+        end
+    end
+})
+
+-- ================================================
+-- حلقة التفريم
+-- ================================================
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if FullAutoEnabled and MacCFrame then
+            -- 1. الانتقال للابتوب والضغط لأخذ الطلب
+            InstantTP(MacCFrame)
+            task.wait(0.3)
+            
+            ForceClickAllPrompts()
+            task.wait(0.3)
+            
+            -- البحث عن المربع الأحمر
+            local deliveryPart = nil
+            local searchStart = tick()
+            while FullAutoEnabled and not deliveryPart and (tick() - searchStart < 3) do
+                task.wait(0.2)
+                deliveryPart = GetRedDeliveryBox()
+            end
+            
+            -- 2. الطيران للبيت
+            if deliveryPart then
+                local targetCF = deliveryPart.CFrame
+                
+                TweenTo(targetCF)
+                
+                -- 3. التسليم والرجوع
+                if FullAutoEnabled then
+                    task.wait(0.4)
+                    ForceClickAllPrompts()
+                    task.wait(0.4)
+                    
+                    InstantTP(MacCFrame)
+                    task.wait(0.3)
+                end
+            end
+        end
+    end
+end)
